@@ -1,0 +1,116 @@
+/**
+ * MainWP for Google Security for WordPress - admin styling.
+ *
+ * Minimal layout only; relies on wp-admin's own form/table styling for
+ * everything else so the screen matches the rest of MainWP's chrome.
+ */
+
+.mwpgswp-wrap {
+	max-width: 900px;
+}
+
+.mwpgswp-child-version {
+	color: #646970;
+	font-style: italic;
+}
+
+.mwpgswp-notice {
+	padding: 8px 12px;
+	margin: 12px 0;
+	border-left: 4px solid #d63638;
+	background: #fff;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+.mwpgswp-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2px;
+	border-bottom: 1px solid #c3c4c7;
+	margin: 16px 0 0;
+}
+
+.mwpgswp-tab-btn {
+	background: #f0f0f1;
+	border: 1px solid #c3c4c7;
+	border-bottom: none;
+	border-radius: 4px 4px 0 0;
+	padding: 8px 14px;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.mwpgswp-tab-btn.is-active {
+	background: #fff;
+	font-weight: 600;
+	position: relative;
+	top: 1px;
+}
+
+.mwpgswp-tabpanel {
+	background: #fff;
+	border: 1px solid #c3c4c7;
+	border-top: none;
+	padding: 16px 20px;
+}
+
+.mwpgswp-field {
+	padding: 10px 0;
+	border-bottom: 1px solid #f0f0f1;
+	display: grid;
+	grid-template-columns: 260px 1fr;
+	gap: 8px 16px;
+	align-items: start;
+}
+
+.mwpgswp-field:last-child {
+	border-bottom: none;
+}
+
+.mwpgswp-field-label {
+	font-weight: 600;
+	padding-top: 4px;
+}
+
+.mwpgswp-field-description {
+	grid-column: 2;
+	margin: 4px 0 0;
+	color: #646970;
+}
+
+.mwpgswp-secret-wrap {
+	display: inline-flex;
+	gap: 6px;
+	align-items: center;
+}
+
+.mwpgswp-role-checkbox {
+	display: inline-block;
+	margin: 0 16px 6px 0;
+}
+
+.mwpgswp-enterprise-notice {
+	background: #f6f7f7;
+	border-left: 4px solid #72aee6;
+	padding: 8px 12px;
+}
+
+.mwpgswp-actions {
+	margin-top: 16px;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.mwpgswp-save-status {
+	color: #646970;
+}
+
+.mwpgswp-overview-table .mwpgswp-site-url {
+	color: #646970;
+	font-size: 12px;
+}
+
+.mwpgswp-overview-table .button + .button {
+	margin-left: 6px;
+}
