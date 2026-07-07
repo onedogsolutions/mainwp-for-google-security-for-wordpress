@@ -77,7 +77,7 @@ class MWPGSWP_Admin {
 		wp_enqueue_script(
 			'mwpgswp-admin',
 			MWPGSWP_PLUGIN_URL . 'assets/js/mwpgswp-admin.js',
-			array( 'jquery' ),
+			array(),
 			MWPGSWP_VERSION,
 			true
 		);

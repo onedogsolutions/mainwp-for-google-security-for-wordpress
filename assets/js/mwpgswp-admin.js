@@ -1,10 +1,10 @@
 /**
  * MainWP for Google Security for WordPress - admin JS.
  *
- * Vanilla-jQuery (jQuery already ships with every MainWP admin screen). No
- * build step: this file is enqueued as-is by MWPGSWP_Admin::enqueue_assets().
+ * Plain JS, no dependencies. No build step: this file is enqueued as-is by
+ * MWPGSWP_Admin::enqueue_assets().
  */
-( function ( $ ) {
+( function () {
 	'use strict';
 
 	var isDirty = false;
@@ -12,30 +12,48 @@
 	/**
 	 * Tabs: show the clicked tab's panel, hide the rest, persist in the hash.
 	 */
-	function initTabs( $form ) {
-		var $tabs = $form.find( '.mwpgswp-tabs .mwpgswp-tab-btn' );
-		var $panels = $form.find( '.mwpgswp-tabpanel' );
+	function initTabs( form ) {
+		var tabs = form.querySelectorAll( '.mwpgswp-tabs .mwpgswp-tab-btn' );
+		var panels = form.querySelectorAll( '.mwpgswp-tabpanel' );
 
 		function activate( tabId ) {
-			$tabs.removeClass( 'is-active' );
-			$panels.attr( 'hidden', true ).removeClass( 'is-active' );
+			var matchedTab = null;
+			var matchedPanel = null;
 
-			var $tab = $tabs.filter( '[data-tab="' + tabId + '"]' );
-			var $panel = $panels.filter( '[data-tab="' + tabId + '"]' );
+			tabs.forEach( function ( tab ) {
+				var isMatch = tab.getAttribute( 'data-tab' ) === tabId;
+				tab.classList.toggle( 'is-active', isMatch );
+				if ( isMatch ) {
+					matchedTab = tab;
+				}
+			} );
 
-			if ( ! $tab.length || ! $panel.length ) {
-				$tab = $tabs.first();
-				$panel = $panels.first();
+			panels.forEach( function ( panel ) {
+				var isMatch = panel.getAttribute( 'data-tab' ) === tabId;
+				panel.classList.toggle( 'is-active', isMatch );
+				panel.hidden = ! isMatch;
+				if ( isMatch ) {
+					matchedPanel = panel;
+				}
+			} );
+
+			if ( ! matchedTab || ! matchedPanel ) {
+				tabs.forEach( function ( tab, i ) {
+					tab.classList.toggle( 'is-active', 0 === i );
+				} );
+				panels.forEach( function ( panel, i ) {
+					panel.classList.toggle( 'is-active', 0 === i );
+					panel.hidden = 0 !== i;
+				} );
 			}
-
-			$tab.addClass( 'is-active' );
-			$panel.removeAttr( 'hidden' ).addClass( 'is-active' );
 		}
 
-		$tabs.on( 'click', function () {
-			var tabId = $( this ).data( 'tab' );
-			activate( tabId );
-			window.location.hash = 'tab=' + tabId;
+		tabs.forEach( function ( tab ) {
+			tab.addEventListener( 'click', function () {
+				var tabId = tab.getAttribute( 'data-tab' );
+				activate( tabId );
+				window.location.hash = 'tab=' + tabId;
+			} );
 		} );
 
 		var hashMatch = /tab=([\w-]+)/.exec( window.location.hash );
@@ -48,13 +66,13 @@
 	 * Reads the current value of a `fields[key]` control, whichever input
 	 * type it is (checkbox with a hidden 0/1 companion, or a select).
 	 */
-	function getFieldValue( $form, fieldKey ) {
-		var $checkbox = $form.find( 'input[type="checkbox"][name="fields[' + fieldKey + ']"]' );
-		if ( $checkbox.length ) {
-			return $checkbox.is( ':checked' ) ? '1' : '0';
+	function getFieldValue( form, fieldKey ) {
+		var checkbox = form.querySelector( 'input[type="checkbox"][name="fields[' + fieldKey + ']"]' );
+		if ( checkbox ) {
+			return checkbox.checked ? '1' : '0';
 		}
-		var $control = $form.find( '[name="fields[' + fieldKey + ']"]' );
-		return $control.length ? $control.val() : null;
+		var control = form.querySelector( '[name="fields[' + fieldKey + ']"]' );
+		return control ? control.value : null;
 	}
 
 	/**
@@ -63,41 +81,51 @@
 	 * field currently holds the matching value. Values still submit either
 	 * way (see PLAN — hidden fields stay mounted, same as GSWP's own screen).
 	 */
-	function refreshConditionalFields( $form ) {
-		$form.find( '[data-requires-field]' ).each( function () {
-			var $row = $( this );
-			var requiredField = $row.data( 'requires-field' );
-			var requiredValue = String( $row.data( 'requires-value' ) );
-			var currentValue = getFieldValue( $form, requiredField );
+	function refreshConditionalFields( form ) {
+		form.querySelectorAll( '[data-requires-field]' ).forEach( function ( row ) {
+			var requiredField = row.getAttribute( 'data-requires-field' );
+			var requiredValue = String( row.getAttribute( 'data-requires-value' ) );
+			var currentValue = getFieldValue( form, requiredField );
 
-			$row.toggle( null !== currentValue && String( currentValue ) === requiredValue );
+			row.style.display = ( null !== currentValue && String( currentValue ) === requiredValue ) ? '' : 'none';
 		} );
 	}
 
 	/**
 	 * Secret field show/hide toggle.
 	 */
-	function initSecretToggles( $form ) {
-		$form.on( 'click', '.mwpgswp-secret-toggle', function () {
-			var $btn = $( this );
-			var $input = $( '#' + $btn.data( 'target' ) );
-			var isPassword = 'password' === $input.attr( 'type' );
+	function initSecretToggles( form ) {
+		form.addEventListener( 'click', function ( e ) {
+			var btn = e.target.closest( '.mwpgswp-secret-toggle' );
+			if ( ! btn ) {
+				return;
+			}
 
-			$input.attr( 'type', isPassword ? 'text' : 'password' );
-			$btn.text( isPassword ? mwpgswpAdmin.hide || 'Hide' : mwpgswpAdmin.show || 'Show' );
+			var input = document.getElementById( btn.getAttribute( 'data-target' ) );
+			if ( ! input ) {
+				return;
+			}
+			var isPassword = 'password' === input.getAttribute( 'type' );
+
+			input.setAttribute( 'type', isPassword ? 'text' : 'password' );
+			btn.textContent = isPassword ? ( mwpgswpAdmin.hide || 'Hide' ) : ( mwpgswpAdmin.show || 'Show' );
 		} );
 	}
 
 	/**
 	 * Dirty-state guard: warn before navigating away with unsaved changes.
 	 */
-	function initDirtyGuard( $form ) {
-		$form.on( 'change input', function () {
+	function initDirtyGuard( form ) {
+		form.addEventListener( 'change', function () {
+			isDirty = true;
+		} );
+		form.addEventListener( 'input', function () {
 			isDirty = true;
 		} );
 
-		$( window ).on( 'beforeunload', function ( e ) {
+		window.addEventListener( 'beforeunload', function ( e ) {
 			if ( isDirty ) {
+				e.preventDefault();
 				e.returnValue = mwpgswpAdmin.confirmUnsaved;
 				return mwpgswpAdmin.confirmUnsaved;
 			}
@@ -105,39 +133,62 @@
 	}
 
 	/**
+	 * POST a form-urlencoded body to admin-ajax.php and resolve the parsed
+	 * JSON response. Rejects only on a network/transport failure — a
+	 * WP-style { success:false, data:{...} } payload still resolves so
+	 * callers can read the error message out of it.
+	 */
+	function postAjax( body ) {
+		return fetch( mwpgswpAdmin.ajaxUrl, {
+			method: 'POST',
+			credentials: 'same-origin',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: body,
+		} ).then( function ( response ) {
+			return response.json();
+		} );
+	}
+
+	/**
 	 * AJAX save.
 	 */
-	function initSave( $form ) {
-		var $status = $( '#mwpgswp-save-status' );
-		var $notice = $( '#mwpgswp-notice' );
-		var $button = $( '#mwpgswp-save-btn' );
+	function initSave( form ) {
+		var status = document.getElementById( 'mwpgswp-save-status' );
+		var notice = document.getElementById( 'mwpgswp-notice' );
+		var button = document.getElementById( 'mwpgswp-save-btn' );
 
-		$form.on( 'submit', function ( e ) {
+		form.addEventListener( 'submit', function ( e ) {
 			e.preventDefault();
 
-			$notice.attr( 'hidden', true ).removeClass( 'notice-error' ).text( '' );
-			$status.text( mwpgswpAdmin.saving );
-			$button.prop( 'disabled', true );
+			notice.hidden = true;
+			notice.classList.remove( 'notice-error' );
+			notice.textContent = '';
+			status.textContent = mwpgswpAdmin.saving;
+			button.disabled = true;
 
-			$.post( mwpgswpAdmin.ajaxUrl, $form.serialize() )
-				.done( function ( response ) {
+			postAjax( new URLSearchParams( new FormData( form ) ).toString() )
+				.then( function ( response ) {
 					if ( response && response.success ) {
-						$status.text( mwpgswpAdmin.saved );
+						status.textContent = mwpgswpAdmin.saved;
 						isDirty = false;
 					} else {
 						var message = response && response.data && response.data.message
 							? response.data.message
 							: mwpgswpAdmin.saveError;
-						$status.text( '' );
-						$notice.removeAttr( 'hidden' ).addClass( 'notice-error' ).text( message );
+						status.textContent = '';
+						notice.hidden = false;
+						notice.classList.add( 'notice-error' );
+						notice.textContent = message;
 					}
 				} )
-				.fail( function () {
-					$status.text( '' );
-					$notice.removeAttr( 'hidden' ).addClass( 'notice-error' ).text( mwpgswpAdmin.saveError );
+				.catch( function () {
+					status.textContent = '';
+					notice.hidden = false;
+					notice.classList.add( 'notice-error' );
+					notice.textContent = mwpgswpAdmin.saveError;
 				} )
-				.always( function () {
-					$button.prop( 'disabled', false );
+				.then( function () {
+					button.disabled = false;
 				} );
 		} );
 	}
@@ -146,51 +197,52 @@
 	 * Overview page: per-row "Check" status button.
 	 */
 	function initOverviewChecks() {
-		$( '.mwpgswp-check-btn' ).on( 'click', function () {
-			var $btn = $( this );
-			var siteId = $btn.data( 'site-id' );
-			var $cell = $btn.closest( 'tr' ).find( '.mwpgswp-status-cell' );
+		document.querySelectorAll( '.mwpgswp-check-btn' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var siteId = btn.getAttribute( 'data-site-id' );
+				var cell = btn.closest( 'tr' ).querySelector( '.mwpgswp-status-cell' );
 
-			$cell.text( mwpgswpAdmin.checking );
-			$btn.prop( 'disabled', true );
+				cell.textContent = mwpgswpAdmin.checking;
+				btn.disabled = true;
 
-			$.post( mwpgswpAdmin.ajaxUrl, {
-				action: 'mwpgswp_check_site',
-				nonce: mwpgswpAdmin.checkNonce,
-				site_id: siteId,
-			} )
-				.done( function ( response ) {
-					if ( response && response.success ) {
-						var d = response.data;
-						$cell.text( d.version + ' – ' + d.key_type + ( d.protected ? ' ✓' : '' ) );
-					} else {
-						$cell.text( ( response && response.data && response.data.message ) || mwpgswpAdmin.saveError );
-					}
-				} )
-				.fail( function () {
-					$cell.text( mwpgswpAdmin.saveError );
-				} )
-				.always( function () {
-					$btn.prop( 'disabled', false );
-				} );
+				postAjax( new URLSearchParams( {
+					action: 'mwpgswp_check_site',
+					nonce: mwpgswpAdmin.checkNonce,
+					site_id: siteId,
+				} ).toString() )
+					.then( function ( response ) {
+						if ( response && response.success ) {
+							var d = response.data;
+							cell.textContent = d.version + ' – ' + d.key_type + ( d.protected ? ' ✓' : '' );
+						} else {
+							cell.textContent = ( response && response.data && response.data.message ) || mwpgswpAdmin.saveError;
+						}
+					} )
+					.catch( function () {
+						cell.textContent = mwpgswpAdmin.saveError;
+					} )
+					.then( function () {
+						btn.disabled = false;
+					} );
+			} );
 		} );
 	}
 
-	$( function () {
-		var $form = $( '#mwpgswp-settings-form' );
+	document.addEventListener( 'DOMContentLoaded', function () {
+		var form = document.getElementById( 'mwpgswp-settings-form' );
 
-		if ( $form.length ) {
-			initTabs( $form );
-			initSecretToggles( $form );
-			initDirtyGuard( $form );
-			initSave( $form );
+		if ( form ) {
+			initTabs( form );
+			initSecretToggles( form );
+			initDirtyGuard( form );
+			initSave( form );
 
-			refreshConditionalFields( $form );
-			$form.on( 'change', function () {
-				refreshConditionalFields( $form );
+			refreshConditionalFields( form );
+			form.addEventListener( 'change', function () {
+				refreshConditionalFields( form );
 			} );
 		}
 
 		initOverviewChecks();
 	} );
-} )( jQuery );
+} )();
