@@ -47,24 +47,23 @@ typed `bridge_missing` state until then.
   every other extension's title passes through unchanged.
 - Version bumped to 1.1.1 (plugin header, `MWPGSWP_VERSION`, `readme.txt`
   stable tag + changelog). `php -l` clean.
-- **Second symptom from the same test, not changed:** "on initial load of
-  the Add-ons page the left menu registers the add-on, but the card is
-  missing until you click into Add-ons from the sidebar." Traced
-  `MainWP_Extensions_Handler::get_extensions()` and `init_menu()`: the
+- **Second symptom from the same test, closed — not a plugin bug.** "On
+  initial load of the Add-ons page the left menu registers the add-on, but
+  the card is missing until you click into Add-ons from the sidebar."
+  Traced `MainWP_Extensions_Handler::get_extensions()` and `init_menu()`: the
   extensions list is force-refreshed from a *fresh* `apply_filters(
   'mainwp_getextensions', ... )` call at the end of *every* `init_menu()`
   run, and `init_menu()` itself runs on the `admin_menu` hook — i.e. on
-  every single admin page load, not just the Extensions page. No
-  code path (ours or MainWP's) was found that would cache a stale
-  extensions list across a full page navigation the way the reported
-  symptom implies; the only extension-list caching in MainWP core
-  (`mainwp_extensions_all_activation_cached`) gates the paid API-manager
-  activation check, which this extension opts out of (`'apiManager' =>
-  false`). Left unfixed pending reproduction detail: is it consistently
-  reproducible on a fresh login / hard refresh, or did it only happen once
-  around first activating the plugin? Is a page-cache plugin or CDN in
-  front of the dashboard site? Without a code-level cause to point at, a
-  speculative change here would be guessing.
+  every single admin page load, not just the Extensions page. No code path
+  (ours or MainWP's) was found that would cache a stale extensions list
+  across a full page navigation, and confirmed with the operator: a hard
+  refresh, or a fresh logout/login, shows the card immediately, and the
+  dashboard site runs RunCloud Hub (which purges its cache on a new plugin
+  install, but evidently not every layer instantly — most likely leftover
+  PHP opcache bytecode from before the plugin file swap, or a browser/edge
+  cache on that one navigation). Environment-level caching artifact on
+  install, not a MainWP or plugin registration bug; self-resolves on the
+  next normal page load and does not affect actual use. No code change.
 
 ## Historical Phase: Phase 5 (First live-test fixes: title, MainWP-native layout, child-site install, v1.1.0)
 
