@@ -4,7 +4,7 @@ Tags: mainwp, recaptcha, security, extension, addon
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,6 +57,9 @@ No. This extension reads and writes settings through MainWP's own signed dashboa
 From a ZIP URL you set once, on the Extensions page. GSWP isn't on wordpress.org, so the child site can't fetch it on its own — point this setting at a ZIP uploaded to your Dashboard's media library, or one hosted on your own update server. The URL must be reachable from the child site, not just from your Dashboard.
 
 == Changelog ==
+
+= 1.1.2 =
+* The API Credentials tab now hides the classic Secret Key field when Key Type is set to reCAPTCHA Enterprise — Enterprise verifies through the GCP Project ID / API Key pair instead, so the Secret Key field was unused there.
 
 = 1.1.1 =
 * Fixed the page title MainWP prints atop this extension's own Extensions-page screen still reading "For Google Security For Wordpress". That title is a separate string MainWP reconstructs from the page's URL slug (not the extension's registered display name, which the Add-ons card already showed correctly in 1.1.0) — corrected via the `mainwp_extensions_page_top_header` filter MainWP provides for exactly this.

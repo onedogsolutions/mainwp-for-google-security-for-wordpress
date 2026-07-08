@@ -61,9 +61,12 @@ class MWPGSWP_Settings_Schema {
 						'default'     => '',
 					),
 					'secret_key'     => array(
-						'type'    => 'secret',
-						'label'   => __( 'Secret Key', 'mainwp-for-google-security-for-wordpress' ),
-						'default' => '',
+						'type'     => 'secret',
+						'label'    => __( 'Secret Key', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '',
+						// Classic reCAPTCHA v3 only — Enterprise verifies via
+						// the GCP project ID + API key below instead.
+						'requires' => array( 'key_type' => 'classic' ),
 					),
 					'gcp_project_id' => array(
 						'type'      => 'text',

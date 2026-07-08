@@ -5,11 +5,35 @@ A MainWP Dashboard extension for configuring the Google Security for WordPress
 site only. Companion plugin: `onedogsolutions/google-security-for-wordpress`
 (its own STATE.md tracks the child-side work).
 
-## Current Phase: Phase 6 (Second live-test fix: extensions-page header title, v1.1.1)
+## Current Phase: Phase 7 (GSWP 2.9.0 bridge confirmed live end-to-end; Secret Key field gating, v1.1.2)
 
-**Blocked on:** GSWP v2.9.0 shipping the child-side bridge (unchanged from
-Phase 4) — every settings read/write still intentionally resolves to the
-typed `bridge_missing` state until then.
+**No longer blocked.** GSWP 2.9.0 has shipped the child-side bridge and it
+was verified working end-to-end on the live staging dashboard: the per-site
+tab loaded live settings ("Google Security for WordPress 2.9.0 on this
+site"), a settings save round-tripped and persisted on the child (API
+Credentials tab, Enterprise key type, GCP project ID, save confirmed with
+"Saved."), and the "Install GSWP" package-upload + install-to-child flow
+both worked. The extension is functionally complete for its v1 scope.
+
+### Phase 7 Modifications (v1.1.2)
+- Same live test surfaced one more polish item: the API Credentials tab
+  showed the classic **Secret Key** field even when Key Type was set to
+  reCAPTCHA Enterprise, where it's unused (Enterprise verifies through the
+  GCP Project ID / API Key pair instead — confirmed with the operator, who
+  owns GSWP). Fixed with the same conditional-visibility mechanism already
+  used for the `gcp_project_id`/`gcp_api_key` fields: added `'requires' =>
+  array( 'key_type' => 'classic' )` to `secret_key` in
+  `class-mwpgswp-settings-schema.php`. No render/JS/save-path changes needed
+  — `render_field()` already emits `data-requires-field`/`-value` from any
+  field's `requires` entry, and the existing JS re-evaluates visibility
+  against the live `key_type` select on load and on every change. The field
+  still stays mounted and submits its value when hidden (same "hidden
+  fields stay mounted" design as every other conditional field), so no
+  behavior changed beyond presentation.
+- Version bumped to 1.1.2 (plugin header, `MWPGSWP_VERSION`, `readme.txt`
+  stable tag + changelog). `php -l` clean.
+
+## Historical Phase: Phase 6 (Second live-test fix: extensions-page header title, v1.1.1)
 
 ### Phase 6 Modifications (v1.1.1)
 - Re-tested v1.1.0 on the live staging dashboard. The Add-ons grid card and
