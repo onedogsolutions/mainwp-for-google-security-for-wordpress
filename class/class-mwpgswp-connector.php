@@ -57,6 +57,97 @@ class MWPGSWP_Connector {
 	}
 
 	/**
+	 * Install (or, with an existing install present, upgrade-in-place) Google
+	 * Security for WordPress on a child site using MainWP's standard
+	 * 'installplugintheme' child callable — the same mechanism MainWP's own
+	 * Install page uses, so the child downloads and installs the package
+	 * itself with no SSH/FTP and no separate login.
+	 *
+	 * @param int $site_id MainWP internal website ID.
+	 * @return array{ok:bool,error_type:?string,message:string,data:?array}
+	 */
+	public static function install_package( $site_id ) {
+		global $mwpgswp_activator;
+
+		$package = get_option( 'mwpgswp_package', array() );
+		$url     = is_array( $package ) && ! empty( $package['url'] ) ? $package['url'] : '';
+
+		if ( '' === $url ) {
+			return array(
+				'ok'         => false,
+				'error_type' => 'no_package',
+				'message'    => __( 'No GSWP package URL is configured. Set one on the Extensions page first.', 'mainwp-for-google-security-for-wordpress' ),
+				'data'       => null,
+			);
+		}
+
+		$response = apply_filters(
+			'mainwp_fetchurlauthed',
+			$mwpgswp_activator->get_child_file(),
+			$mwpgswp_activator->get_child_key(),
+			(int) $site_id,
+			'installplugintheme',
+			array(
+				'type'           => 'plugin',
+				'url'            => wp_json_encode( $url ),
+				'activatePlugin' => 'yes',
+				// Clears the destination first, so the same call upgrades a
+				// site that already has an older GSWP installed.
+				'overwrite'      => true,
+			)
+		);
+
+		if ( self::is_transport_failure( $response ) ) {
+			return array(
+				'ok'         => false,
+				'error_type' => 'transport',
+				'message'    => self::transport_error_message( $response ),
+				'data'       => null,
+			);
+		}
+
+		if ( empty( $response['installation'] ) || 'SUCCESS' !== $response['installation'] ) {
+			return array(
+				'ok'         => false,
+				'error_type' => 'install_error',
+				'message'    => __( 'The child site reported an installation error.', 'mainwp-for-google-security-for-wordpress' ),
+				'data'       => $response,
+			);
+		}
+
+		return array(
+			'ok'         => true,
+			'error_type' => null,
+			'message'    => '',
+			'data'       => $response,
+		);
+	}
+
+	/**
+	 * Whether a 'mainwp_fetchurlauthed' response is a transport/site-level
+	 * failure (unreachable site, suspended site, or a dashboard user without
+	 * edit rights on this site) rather than a real payload.
+	 *
+	 * @param mixed $response Raw filter result.
+	 * @return bool
+	 */
+	private static function is_transport_failure( $response ) {
+		return ! is_array( $response ) || isset( $response['error'] );
+	}
+
+	/**
+	 * Extract a human-readable message from a transport-failure response.
+	 *
+	 * @param mixed $response Raw filter result.
+	 * @return string
+	 */
+	private static function transport_error_message( $response ) {
+		return ( is_array( $response ) && ! empty( $response['error'] ) )
+			? $response['error']
+			: __( 'The site did not respond.', 'mainwp-for-google-security-for-wordpress' );
+	}
+
+	/**
 	 * Make one 'extra_execution' round trip and normalize the response into
 	 * one of three typed outcomes: a transport/site-level failure (site
 	 * unreachable, suspended, not editable by this dashboard user), a missing
@@ -83,17 +174,11 @@ class MWPGSWP_Connector {
 			$post_data
 		);
 
-		// Transport/site-level failure: unreachable site, suspended site, or a
-		// dashboard user without edit rights on this site.
-		if ( ! is_array( $response ) || isset( $response['error'] ) ) {
-			$message = ( is_array( $response ) && ! empty( $response['error'] ) )
-				? $response['error']
-				: __( 'The site did not respond.', 'mainwp-for-google-security-for-wordpress' );
-
+		if ( self::is_transport_failure( $response ) ) {
 			return array(
 				'ok'         => false,
 				'error_type' => 'transport',
-				'message'    => $message,
+				'message'    => self::transport_error_message( $response ),
 				'data'       => null,
 			);
 		}

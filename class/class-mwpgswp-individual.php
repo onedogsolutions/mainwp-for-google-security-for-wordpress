@@ -57,7 +57,7 @@ class MWPGSWP_Individual {
 		$site_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only site selector, matches MainWP's own convention.
 
 		if ( ! $site_id ) {
-			echo '<div class="notice notice-error"><p>' . esc_html__( 'No site selected.', 'mainwp-for-google-security-for-wordpress' ) . '</p></div>';
+			echo '<div class="ui segment"><div class="ui negative message">' . esc_html__( 'No site selected.', 'mainwp-for-google-security-for-wordpress' ) . '</div></div>';
 			do_action( 'mainwp_pagefooter_sites', 'GSWPConfig' );
 			return;
 		}
@@ -65,7 +65,7 @@ class MWPGSWP_Individual {
 		$result = MWPGSWP_Connector::get_settings( $site_id );
 
 		if ( ! $result['ok'] ) {
-			$this->render_error_notice( $result );
+			$this->render_error_notice( $result, $site_id );
 			do_action( 'mainwp_pagefooter_sites', 'GSWPConfig' );
 			return;
 		}
@@ -78,18 +78,27 @@ class MWPGSWP_Individual {
 	/**
 	 * Render one of the three typed connector failure states.
 	 *
-	 * @param array{error_type:?string,message:string} $result Connector result.
+	 * @param array{error_type:?string,message:string} $result  Connector result.
+	 * @param int                                       $site_id MainWP internal website ID.
 	 */
-	private function render_error_notice( $result ) {
-		echo '<div class="notice notice-error mwpgswp-fetch-error"><p>' . esc_html( $result['message'] ) . '</p>';
-
-		if ( 'bridge_missing' === $result['error_type'] ) {
-			echo '<p>' . esc_html__( 'Install or update the Google Security for WordPress plugin on this child site, then reload this page.', 'mainwp-for-google-security-for-wordpress' ) . '</p>';
-		} elseif ( 'transport' === $result['error_type'] ) {
-			echo '<p>' . esc_html__( 'Confirm the site is online and its MainWP connection is healthy from Manage Sites, then reload this page.', 'mainwp-for-google-security-for-wordpress' ) . '</p>';
-		}
-
-		echo '</div>';
+	private function render_error_notice( $result, $site_id ) {
+		?>
+		<div class="ui segment">
+			<div class="ui negative message mwpgswp-fetch-error">
+				<div class="header"><?php echo esc_html( $result['message'] ); ?></div>
+				<?php if ( 'bridge_missing' === $result['error_type'] ) : ?>
+					<p><?php esc_html_e( 'Install or update the Google Security for WordPress plugin on this child site, then reload this page.', 'mainwp-for-google-security-for-wordpress' ); ?></p>
+					<div class="mwpgswp-bridge-missing">
+						<button type="button" class="ui green button mwpgswp-install-btn" data-site-id="<?php echo esc_attr( $site_id ); ?>">
+							<?php esc_html_e( 'Install GSWP', 'mainwp-for-google-security-for-wordpress' ); ?>
+						</button>
+					</div>
+				<?php elseif ( 'transport' === $result['error_type'] ) : ?>
+					<p><?php esc_html_e( 'Confirm the site is online and its MainWP connection is healthy from Manage Sites, then reload this page.', 'mainwp-for-google-security-for-wordpress' ); ?></p>
+				<?php endif; ?>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**
@@ -107,7 +116,7 @@ class MWPGSWP_Individual {
 		$tabs               = MWPGSWP_Settings_Schema::get_tabs();
 		$first              = true;
 		?>
-		<div class="mwpgswp-wrap">
+		<div class="ui segment">
 			<p class="mwpgswp-child-version">
 				<?php
 				printf(
@@ -118,39 +127,38 @@ class MWPGSWP_Individual {
 				?>
 			</p>
 
-			<div id="mwpgswp-notice" class="mwpgswp-notice" hidden></div>
+			<div id="mwpgswp-notice" class="ui negative message" hidden></div>
 
-			<form id="mwpgswp-settings-form" data-site-id="<?php echo esc_attr( $site_id ); ?>">
+			<form id="mwpgswp-settings-form" class="ui form" data-site-id="<?php echo esc_attr( $site_id ); ?>">
 				<input type="hidden" name="action" value="mwpgswp_save_settings" />
 				<?php wp_nonce_field( 'mwpgswp_save_settings', 'nonce' ); ?>
 				<input type="hidden" name="site_id" value="<?php echo esc_attr( $site_id ); ?>" />
 
-				<nav class="mwpgswp-tabs" role="tablist">
+				<div class="ui top attached tabular menu mwpgswp-tabs" role="tablist">
 					<?php foreach ( $tabs as $tab_id => $tab ) : ?>
-						<button
-							type="button"
-							class="mwpgswp-tab-btn<?php echo $first ? ' is-active' : ''; ?>"
+						<a
+							class="item mwpgswp-tab-btn<?php echo $first ? ' active' : ''; ?>"
 							data-tab="<?php echo esc_attr( $tab_id ); ?>"
 							role="tab"
-						><?php echo esc_html( $tab['label'] ); ?></button>
+						><?php echo esc_html( $tab['label'] ); ?></a>
 						<?php $first = false; ?>
 					<?php endforeach; ?>
-				</nav>
+				</div>
 
 				<?php
 				$first = true;
 				foreach ( $tabs as $tab_id => $tab ) :
 					?>
 					<div
-						class="mwpgswp-tabpanel<?php echo $first ? ' is-active' : ''; ?>"
+						class="ui bottom attached tab segment mwpgswp-tabpanel<?php echo $first ? ' active' : ''; ?>"
 						data-tab="<?php echo esc_attr( $tab_id ); ?>"
 						role="tabpanel"
 						<?php echo $first ? '' : 'hidden'; ?>
 					>
 						<?php if ( ! empty( $tab['requires_enterprise'] ) && 'enterprise' !== $key_type ) : ?>
-							<p class="mwpgswp-enterprise-notice">
+							<div class="ui message mwpgswp-enterprise-notice">
 								<?php esc_html_e( 'This tab requires a reCAPTCHA Enterprise key. Set the Key Type on the API Credentials tab first.', 'mainwp-for-google-security-for-wordpress' ); ?>
-							</p>
+							</div>
 						<?php endif; ?>
 
 						<?php
@@ -168,7 +176,7 @@ class MWPGSWP_Individual {
 				?>
 
 				<p class="mwpgswp-actions">
-					<button type="submit" class="button button-primary" id="mwpgswp-save-btn">
+					<button type="submit" class="ui big green button" id="mwpgswp-save-btn">
 						<?php esc_html_e( 'Save Settings', 'mainwp-for-google-security-for-wordpress' ); ?>
 					</button>
 					<span id="mwpgswp-save-status" class="mwpgswp-save-status"></span>
@@ -197,13 +205,15 @@ class MWPGSWP_Individual {
 		}
 		$name = 'fields[' . $key . ']';
 		?>
-		<div class="mwpgswp-field mwpgswp-field-<?php echo esc_attr( $field['type'] ); ?>"<?php echo $requires_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_attr() above. ?>>
-			<label class="mwpgswp-field-label" for="mwpgswp-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
-			<div class="mwpgswp-field-control">
-				<?php
-				switch ( $field['type'] ) :
-					case 'toggle':
-						?>
+		<div class="field mwpgswp-field mwpgswp-field-<?php echo esc_attr( $field['type'] ); ?>"<?php echo $requires_attr; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from esc_attr() above. ?>>
+			<?php if ( 'toggle' !== $field['type'] ) : ?>
+				<label for="mwpgswp-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
+			<?php endif; ?>
+			<?php
+			switch ( $field['type'] ) :
+				case 'toggle':
+					?>
+					<div class="ui toggle checkbox">
 						<input type="hidden" name="<?php echo esc_attr( $name ); ?>" value="0" />
 						<input
 							type="checkbox"
@@ -212,55 +222,58 @@ class MWPGSWP_Individual {
 							value="1"
 							<?php checked( '1', $value ); ?>
 						/>
-						<?php
-						break;
+						<label for="mwpgswp-<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $field['label'] ); ?></label>
+					</div>
+					<?php
+					break;
 
-					case 'text':
-					case 'email_list':
-					case 'login_list':
-						?>
+				case 'text':
+				case 'email_list':
+				case 'login_list':
+					?>
+					<div class="ui input">
 						<input
 							type="text"
 							id="mwpgswp-<?php echo esc_attr( $key ); ?>"
 							name="<?php echo esc_attr( $name ); ?>"
 							value="<?php echo esc_attr( $value ); ?>"
-							class="regular-text"
 						/>
-						<?php
-						break;
+					</div>
+					<?php
+					break;
 
-					case 'secret':
-						?>
-						<span class="mwpgswp-secret-wrap">
-							<input
-								type="password"
-								id="mwpgswp-<?php echo esc_attr( $key ); ?>"
-								name="<?php echo esc_attr( $name ); ?>"
-								value="<?php echo esc_attr( $value ); ?>"
-								class="regular-text"
-								autocomplete="off"
-							/>
-							<button type="button" class="mwpgswp-secret-toggle button" data-target="mwpgswp-<?php echo esc_attr( $key ); ?>">
-								<?php esc_html_e( 'Show', 'mainwp-for-google-security-for-wordpress' ); ?>
-							</button>
-						</span>
-						<?php
-						break;
+				case 'secret':
+					?>
+					<div class="ui action input mwpgswp-secret-wrap">
+						<input
+							type="password"
+							id="mwpgswp-<?php echo esc_attr( $key ); ?>"
+							name="<?php echo esc_attr( $name ); ?>"
+							value="<?php echo esc_attr( $value ); ?>"
+							autocomplete="off"
+						/>
+						<button type="button" class="ui button mwpgswp-secret-toggle" data-target="mwpgswp-<?php echo esc_attr( $key ); ?>">
+							<?php esc_html_e( 'Show', 'mainwp-for-google-security-for-wordpress' ); ?>
+						</button>
+					</div>
+					<?php
+					break;
 
-					case 'select':
-						?>
-						<select id="mwpgswp-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>">
-							<?php foreach ( $field['options'] as $option_value => $option_label ) : ?>
-								<option value="<?php echo esc_attr( $option_value ); ?>" <?php selected( $option_value, $value ); ?>>
-									<?php echo esc_html( $option_label ); ?>
-								</option>
-							<?php endforeach; ?>
-						</select>
-						<?php
-						break;
+				case 'select':
+					?>
+					<select class="ui dropdown" id="mwpgswp-<?php echo esc_attr( $key ); ?>" name="<?php echo esc_attr( $name ); ?>">
+						<?php foreach ( $field['options'] as $option_value => $option_label ) : ?>
+							<option value="<?php echo esc_attr( $option_value ); ?>" <?php selected( $option_value, $value ); ?>>
+								<?php echo esc_html( $option_label ); ?>
+							</option>
+						<?php endforeach; ?>
+					</select>
+					<?php
+					break;
 
-					case 'threshold':
-						?>
+				case 'threshold':
+					?>
+					<div class="ui input mwpgswp-threshold-input">
 						<input
 							type="number"
 							id="mwpgswp-<?php echo esc_attr( $key ); ?>"
@@ -269,13 +282,14 @@ class MWPGSWP_Individual {
 							min="0"
 							max="1"
 							step="0.05"
-							class="small-text"
 						/>
-						<?php
-						break;
+					</div>
+					<?php
+					break;
 
-					case 'int':
-						?>
+				case 'int':
+					?>
+					<div class="ui input mwpgswp-threshold-input">
 						<input
 							type="number"
 							id="mwpgswp-<?php echo esc_attr( $key ); ?>"
@@ -284,35 +298,35 @@ class MWPGSWP_Individual {
 							min="<?php echo esc_attr( $field['min'] ); ?>"
 							max="<?php echo esc_attr( $field['max'] ); ?>"
 							step="1"
-							class="small-text"
 						/>
-						<?php
-						break;
+					</div>
+					<?php
+					break;
 
-					case 'roles':
-						$selected_roles = is_array( $value ) ? $value : array();
-						foreach ( $roles as $role_slug => $role_label ) :
-							?>
-							<label class="mwpgswp-role-checkbox">
-								<input
-									type="checkbox"
-									name="<?php echo esc_attr( $name ); ?>[]"
-									value="<?php echo esc_attr( $role_slug ); ?>"
-									<?php checked( in_array( $role_slug, $selected_roles, true ), true ); ?>
-								/>
-								<?php echo esc_html( $role_label ); ?>
-							</label>
-							<?php
-						endforeach;
-						if ( empty( $roles ) ) :
-							esc_html_e( 'The child site reported no roles.', 'mainwp-for-google-security-for-wordpress' );
-						endif;
-						break;
-				endswitch;
-				?>
-			</div>
+				case 'roles':
+					$selected_roles = is_array( $value ) ? $value : array();
+					foreach ( $roles as $role_slug => $role_label ) :
+						?>
+						<div class="ui checkbox mwpgswp-role-checkbox">
+							<input
+								type="checkbox"
+								id="mwpgswp-<?php echo esc_attr( $key . '-' . $role_slug ); ?>"
+								name="<?php echo esc_attr( $name ); ?>[]"
+								value="<?php echo esc_attr( $role_slug ); ?>"
+								<?php checked( in_array( $role_slug, $selected_roles, true ), true ); ?>
+							/>
+							<label for="mwpgswp-<?php echo esc_attr( $key . '-' . $role_slug ); ?>"><?php echo esc_html( $role_label ); ?></label>
+						</div>
+						<?php
+					endforeach;
+					if ( empty( $roles ) ) :
+						esc_html_e( 'The child site reported no roles.', 'mainwp-for-google-security-for-wordpress' );
+					endif;
+					break;
+			endswitch;
+			?>
 			<?php if ( ! empty( $field['description'] ) ) : ?>
-				<p class="mwpgswp-field-description description"><?php echo esc_html( $field['description'] ); ?></p>
+				<p class="mwpgswp-field-description"><?php echo esc_html( $field['description'] ); ?></p>
 			<?php endif; ?>
 		</div>
 		<?php

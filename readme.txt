@@ -4,7 +4,7 @@ Tags: mainwp, recaptcha, security, extension, addon
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -26,6 +26,10 @@ Because reCAPTCHA site/secret keys are issued **per domain**, this extension doe
 = Requirements on the child site =
 
 The child site needs Google Security for WordPress **2.9.0 or later**, which ships the small bridge this extension talks to over MainWP's existing signed connection (no new REST endpoint or authentication surface — just MainWP Child's own `extra_execution` callable). A site running an older GSWP version, or with GSWP inactive, shows a clear "not available" message instead of a blank or broken form; it is safe to install this extension ahead of upgrading child sites.
+
+= Installing GSWP on a child site =
+
+Since GSWP is not distributed on wordpress.org, this extension can install (or upgrade) it on a child site for you: set a package ZIP URL once on the Extensions page (upload a ZIP or link to one hosted on your own update server), then use the "Install GSWP" button — shown on every site row, and inside the "not active" message on a site's own tab — to install and activate it over MainWP's standard plugin-install mechanism. No SSH, FTP, or separate login required.
 
 = Scope =
 
@@ -49,7 +53,16 @@ Install or update Google Security for WordPress on that specific child site, the
 = Does this affect my MainWP connection to the site? =
 No. This extension reads and writes settings through MainWP's own signed dashboard-to-child channel — the same mechanism MainWP already uses to manage the site. It does not use application passwords, so it is unaffected by GSWP's own "block application passwords for enforced roles" setting.
 
+= Where does the "Install GSWP" button get the plugin from? =
+From a ZIP URL you set once, on the Extensions page. GSWP isn't on wordpress.org, so the child site can't fetch it on its own — point this setting at a ZIP uploaded to your Dashboard's media library, or one hosted on your own update server. The URL must be reachable from the child site, not just from your Dashboard.
+
 == Changelog ==
+
+= 1.1.0 =
+* Fixed the Add-ons card, left menu, and page title showing "for Google Security for WordPress" instead of the full name (MainWP strips the literal word "MainWP" from a plugin-header-derived display name; the extension now registers an explicit display name).
+* Fixed the Extensions-page site table's Site column rendering blank (MainWP's site list returns array rows, not objects).
+* Both screens now use MainWP's own Fomantic UI markup (segments, tabular menu, form/checkbox/input/message classes) instead of raw wp-admin styling, so they fill MainWP's content area and follow its light/dark theme correctly.
+* Added an "Install GSWP" button — on every site row and inside a site's own "not active" message — that installs or upgrades Google Security for WordPress on a child site using MainWP's standard plugin-install mechanism, fed by a new package-URL setting (upload a ZIP or link to one) on the Extensions page.
 
 = 1.0.0 =
 * Initial release: per-site "Google Security" configuration tab (API Credentials, Form Protection, Enterprise Defense, Two-Factor Auth, Alerts & Compatibility) and an Extensions-page site index with a connectivity check.

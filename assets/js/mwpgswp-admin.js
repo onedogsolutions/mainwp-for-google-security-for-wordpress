@@ -20,9 +20,14 @@
 			var matchedTab = null;
 			var matchedPanel = null;
 
+			// 'active' is Fomantic UI's own class for the current tabular-menu
+			// item / tab segment (cosmetic styling); 'hidden' is what actually
+			// shows/hides the panel — kept explicit rather than relying on
+			// Fomantic's own tab-segment default display, which a segment's
+			// unlayered CSS could otherwise win over the [hidden] UA rule.
 			tabs.forEach( function ( tab ) {
 				var isMatch = tab.getAttribute( 'data-tab' ) === tabId;
-				tab.classList.toggle( 'is-active', isMatch );
+				tab.classList.toggle( 'active', isMatch );
 				if ( isMatch ) {
 					matchedTab = tab;
 				}
@@ -30,7 +35,7 @@
 
 			panels.forEach( function ( panel ) {
 				var isMatch = panel.getAttribute( 'data-tab' ) === tabId;
-				panel.classList.toggle( 'is-active', isMatch );
+				panel.classList.toggle( 'active', isMatch );
 				panel.hidden = ! isMatch;
 				if ( isMatch ) {
 					matchedPanel = panel;
@@ -39,10 +44,10 @@
 
 			if ( ! matchedTab || ! matchedPanel ) {
 				tabs.forEach( function ( tab, i ) {
-					tab.classList.toggle( 'is-active', 0 === i );
+					tab.classList.toggle( 'active', 0 === i );
 				} );
 				panels.forEach( function ( panel, i ) {
-					panel.classList.toggle( 'is-active', 0 === i );
+					panel.classList.toggle( 'active', 0 === i );
 					panel.hidden = 0 !== i;
 				} );
 			}
@@ -161,7 +166,6 @@
 			e.preventDefault();
 
 			notice.hidden = true;
-			notice.classList.remove( 'notice-error' );
 			notice.textContent = '';
 			status.textContent = mwpgswpAdmin.saving;
 			button.disabled = true;
@@ -177,14 +181,12 @@
 							: mwpgswpAdmin.saveError;
 						status.textContent = '';
 						notice.hidden = false;
-						notice.classList.add( 'notice-error' );
 						notice.textContent = message;
 					}
 				} )
 				.catch( function () {
 					status.textContent = '';
 					notice.hidden = false;
-					notice.classList.add( 'notice-error' );
 					notice.textContent = mwpgswpAdmin.saveError;
 				} )
 				.then( function () {
@@ -228,6 +230,112 @@
 		} );
 	}
 
+	/**
+	 * "Install GSWP" button: appears on overview rows (with a status cell to
+	 * update) and inside the per-site tab's bridge-missing notice (with no
+	 * status cell — reload the page on success instead, since the settings
+	 * form only renders once the fetch succeeds).
+	 */
+	function initInstallButtons() {
+		document.querySelectorAll( '.mwpgswp-install-btn' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				if ( ! window.confirm( mwpgswpAdmin.confirmInstall ) ) {
+					return;
+				}
+
+				var siteId = btn.getAttribute( 'data-site-id' );
+				var row = btn.closest( 'tr' );
+				var cell = row ? row.querySelector( '.mwpgswp-status-cell' ) : null;
+
+				btn.disabled = true;
+				if ( cell ) {
+					cell.textContent = mwpgswpAdmin.installing;
+				}
+
+				postAjax( new URLSearchParams( {
+					action: 'mwpgswp_install_gswp',
+					nonce: mwpgswpAdmin.installNonce,
+					site_id: siteId,
+				} ).toString() )
+					.then( function ( response ) {
+						if ( response && response.success ) {
+							if ( cell ) {
+								cell.textContent = mwpgswpAdmin.installed;
+								btn.disabled = false;
+							} else {
+								window.location.reload();
+							}
+						} else {
+							var message = ( response && response.data && response.data.message ) || mwpgswpAdmin.saveError;
+							if ( cell ) {
+								cell.textContent = message;
+							} else {
+								window.alert( message );
+							}
+							btn.disabled = false;
+						}
+					} )
+					.catch( function () {
+						if ( cell ) {
+							cell.textContent = mwpgswpAdmin.saveError;
+						}
+						btn.disabled = false;
+					} );
+			} );
+		} );
+	}
+
+	/**
+	 * Overview page: the GSWP package (ZIP URL) setting, with an optional
+	 * media-library upload that fills the URL field.
+	 */
+	function initPackageForm() {
+		var form = document.getElementById( 'mwpgswp-package-form' );
+		if ( ! form ) {
+			return;
+		}
+
+		var status = document.getElementById( 'mwpgswp-package-status' );
+		var urlInput = document.getElementById( 'mwpgswp-package-url' );
+		var uploadBtn = document.getElementById( 'mwpgswp-package-upload' );
+
+		if ( uploadBtn && window.wp && window.wp.media ) {
+			uploadBtn.addEventListener( 'click', function ( e ) {
+				e.preventDefault();
+
+				var frame = window.wp.media( {
+					title: mwpgswpAdmin.selectZip,
+					library: { type: 'application/zip' },
+					multiple: false,
+					button: { text: mwpgswpAdmin.useThisFile },
+				} );
+
+				frame.on( 'select', function () {
+					var attachment = frame.state().get( 'selection' ).first().toJSON();
+					urlInput.value = attachment.url;
+				} );
+
+				frame.open();
+			} );
+		}
+
+		form.addEventListener( 'submit', function ( e ) {
+			e.preventDefault();
+
+			status.textContent = mwpgswpAdmin.saving;
+
+			postAjax( new URLSearchParams( new FormData( form ) ).toString() )
+				.then( function ( response ) {
+					status.textContent = ( response && response.success )
+						? mwpgswpAdmin.saved
+						: ( ( response && response.data && response.data.message ) || mwpgswpAdmin.saveError );
+				} )
+				.catch( function () {
+					status.textContent = mwpgswpAdmin.saveError;
+				} );
+		} );
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
 		var form = document.getElementById( 'mwpgswp-settings-form' );
 
@@ -244,5 +352,7 @@
 		}
 
 		initOverviewChecks();
+		initInstallButtons();
+		initPackageForm();
 	} );
 } )();

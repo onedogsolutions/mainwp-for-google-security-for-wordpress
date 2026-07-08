@@ -5,13 +5,106 @@ A MainWP Dashboard extension for configuring the Google Security for WordPress
 site only. Companion plugin: `onedogsolutions/google-security-for-wordpress`
 (its own STATE.md tracks the child-side work).
 
-## Current Phase: Phase 4 (Release packaging + GSWP 2.9.0 bridge handoff)
+## Current Phase: Phase 5 (First live-test fixes: title, MainWP-native layout, child-site install, v1.1.0)
 
-**Blocked on:** GSWP v2.9.0 shipping the child-side bridge. Until then, every
-child-site call from this extension intentionally resolves to the typed
-`bridge_missing` state ("Google Security for WordPress is not active on this
-child site, or is older than version 2.9.0") — that is the designed behavior,
-not a bug. The extension itself is feature-complete for v1.0.0.
+**Blocked on:** GSWP v2.9.0 shipping the child-side bridge (unchanged from
+Phase 4) — every settings read/write still intentionally resolves to the
+typed `bridge_missing` state until then. The new "Install GSWP" button in
+this phase is not blocked by that, since it uses MainWP's separate, already-
+universal `installplugintheme` child callable rather than the GSWP bridge —
+it can install/upgrade GSWP on a child right now, which is in fact the
+fastest path to getting 2.9.0 onto a site once it ships.
+
+### Phase 5 Modifications (v1.1.0)
+- First real click-through on a live MainWP Dashboard (MainWP 6.1.2, dark
+  theme) surfaced three cosmetic issues and one bug; all four are fixed, plus
+  the requested child-site install button. Root causes were verified against
+  `mainwp/mainwp` / `mainwp/mainwp-child` source before writing any fix (file
+  and line references live in `PLAN-v1.1.0-title-layout-install.md`).
+- **Display title fix.** MainWP's `polish_string_name()`
+  (`pages/page-mainwp-extensions-handler.php`) strips the literal token
+  `MainWP` (among others) from any extension name derived from the plugin
+  header, so "MainWP for Google Security for WordPress" rendered as "for
+  Google Security for WordPress" on the Add-ons card, left menu, and page
+  title. Fixed by passing an explicit `'name' => 'Google Security for
+  WordPress'` in the `mainwp_getextensions` registration array in
+  `MWPGSWP_Activator::get_this_extension()` — MainWP only derives the name
+  from the header when the extension supplies none. The plugin header itself
+  is unchanged (still correct on the WP Plugins screen).
+- **Bug fix: empty Site column on the overview table.**
+  `MWPGSWP_Overview` read `$site->id`/`->name`/`->url` as if `mainwp_getsites`
+  returned objects; it actually returns associative arrays
+  (`MainWP_DB::get_sites()` builds plain `array( 'id' => …, 'name' => …, 'url'
+  => … )` rows, both in the all-sites branch and the single-site branch).
+  Switched to array access with an `is_array()`/`empty($site['id'])` guard
+  per row.
+- **MainWP-native layout.** Both screens previously used raw wp-admin markup
+  (`wp-list-table`, `.notice`) with a hardcoded light-theme palette and a
+  900px max-width, so they rendered as a mismatched white block inside
+  MainWP 6's Fomantic-UI dark chrome instead of filling the content column.
+  Converted both to MainWP's own Fomantic UI classes: `ui segment` wrappers,
+  `ui unstackable table` for the site list, `ui top attached tabular menu` /
+  `ui bottom attached tab segment` for the per-site tabs (kept our own
+  plain-JS class/`hidden`-attribute toggling for switching — Fomantic's *JS*
+  tab behavior needs jQuery, which this project deliberately dropped; the
+  *CSS* classes need no JS to render correctly), `ui form` fields (`ui toggle
+  checkbox`, `ui input`, `ui action input` for the secret-reveal pair, native
+  `select.ui.dropdown`), and `ui negative message` / `ui message` for
+  notices. `mwpgswp-admin.css` shrank to layout-only rules with **no color
+  values at all**, so light/dark theme is inherited entirely from MainWP.
+  One defensive rule was added: `.mwpgswp-tabpanel[hidden]{ display: none
+  !important; }`, since a Fomantic tab segment's own (unlayered) display CSS
+  could otherwise beat the browser's low-specificity `[hidden]` default —
+  the same class of bug GSWP hit with Tailwind layers vs. wp-admin's
+  unlayered `a` color rule in its own Phase 22.
+- **"Install GSWP" button.** New per-site action — on every Extensions-page
+  site row, and inside a site's own tab when it shows the `bridge_missing`
+  message — that installs or upgrades Google Security for WordPress on a
+  child using MainWP's *standard* plugin-install mechanism: the
+  `installplugintheme` child callable (whitelisted in MainWP Child's callable
+  map since 4.0), called via the same `mainwp_fetchurlauthed` filter this
+  extension already uses, with `type=plugin`, a JSON-encoded package `url`,
+  `activatePlugin=yes`, and `overwrite=true` (so the identical call doubles
+  as an upgrade for a site stuck on pre-2.9.0 GSWP — `overwrite` clears the
+  destination first). The child downloads and unpacks the ZIP itself, so the
+  package URL must be reachable *from the child*, not just the dashboard.
+  Because GSWP is not on wordpress.org, added a **package-URL setting**
+  (`mwpgswp_package` option) on the Extensions page: a `wp.media` upload
+  button (ZIP only) or a plain URL field, saved via a new
+  `wp_ajax_mwpgswp_save_settings`-sibling action `mwpgswp_save_package`
+  (nonce + `current_user_can('install_plugins')`). The install call itself is
+  `MWPGSWP_Connector::install_package()` (new; success = child response
+  `installation === 'SUCCESS'`) behind AJAX action `mwpgswp_install_gswp`
+  (nonce + `mainwp_current_user_can('dashboard','edit_sites')` +
+  `current_user_can('install_plugins')` — installing code is gated stricter
+  than editing settings). On the overview row the button updates the status
+  cell in place; inside the tab's bridge-missing notice (no status cell to
+  update) a successful install reloads the page, which naturally lands on
+  the live settings form once GSWP is present. No bulk "install to all
+  sites" — offered site-by-site where the operator is already looking at
+  that site, consistent with the per-domain-keys posture of the whole
+  extension.
+- Refactored `MWPGSWP_Connector`: extracted `is_transport_failure()` /
+  `transport_error_message()` helpers shared between the existing
+  `get_settings`/`update_settings` path and the new `install_package()`,
+  which has a different success signature (`installation === 'SUCCESS'`, not
+  the `mwpgswp` envelope) since it talks to a stock MainWP callable, not the
+  GSWP bridge.
+- Wrote `PLAN-v1.1.0-title-layout-install.md` before implementing (the spec
+  for everything in this phase, with source verification for the title bug,
+  the array-shape bug, the Fomantic conversion approach, and the
+  `installplugintheme` wire format).
+- Version bumped to 1.1.0 (plugin header, `MWPGSWP_VERSION`, `readme.txt`
+  stable tag + changelog + two new FAQs). `php -l` clean on all touched PHP;
+  `node --check` clean on the JS. No new files under `class/`; `assets/`
+  unchanged in file count (same two files, rewritten).
+- **Not yet done:** re-verification on the live staging dashboard (the
+  fixes were driven by the first test's screenshots + source analysis, not
+  yet re-tested in the browser); the Install button's live path is
+  untestable end-to-end until either GSWP 2.9.0 exists or a pre-2.9.0 GSWP
+  ZIP is staged as the package URL to exercise the install-only half.
+
+## Historical Phase: Phase 4 (Release packaging + GSWP 2.9.0 bridge handoff)
 
 ### Phase 4 Modifications
 - Merged the development branch (`claude/mainwp-configurator-addon-ro1623`)

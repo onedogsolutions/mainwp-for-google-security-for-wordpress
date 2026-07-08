@@ -54,6 +54,8 @@ class MWPGSWP_Admin {
 	public function __construct() {
 		add_action( 'wp_ajax_mwpgswp_save_settings', array( MWPGSWP_Individual::get_instance(), 'ajax_save' ) );
 		add_action( 'wp_ajax_mwpgswp_check_site', array( MWPGSWP_Overview::get_instance(), 'ajax_check' ) );
+		add_action( 'wp_ajax_mwpgswp_save_package', array( MWPGSWP_Overview::get_instance(), 'ajax_save_package' ) );
+		add_action( 'wp_ajax_mwpgswp_install_gswp', array( MWPGSWP_Overview::get_instance(), 'ajax_install' ) );
 	}
 
 	/**
@@ -89,13 +91,20 @@ class MWPGSWP_Admin {
 				'ajaxUrl'          => admin_url( 'admin-ajax.php' ),
 				'saveNonce'        => wp_create_nonce( 'mwpgswp_save_settings' ),
 				'checkNonce'       => wp_create_nonce( 'mwpgswp_check_site' ),
+				'packageNonce'     => wp_create_nonce( 'mwpgswp_save_package' ),
+				'installNonce'     => wp_create_nonce( 'mwpgswp_install_gswp' ),
 				'confirmUnsaved'   => __( 'You have unsaved changes. Leave this page anyway?', 'mainwp-for-google-security-for-wordpress' ),
+				'confirmInstall'   => __( 'Install (or reinstall/upgrade) Google Security for WordPress on this site now?', 'mainwp-for-google-security-for-wordpress' ),
 				'saving'           => __( 'Saving…', 'mainwp-for-google-security-for-wordpress' ),
 				'saved'            => __( 'Saved.', 'mainwp-for-google-security-for-wordpress' ),
 				'saveError'        => __( 'Something went wrong.', 'mainwp-for-google-security-for-wordpress' ),
 				'checking'         => __( 'Checking…', 'mainwp-for-google-security-for-wordpress' ),
+				'installing'       => __( 'Installing…', 'mainwp-for-google-security-for-wordpress' ),
+				'installed'        => __( 'Installed.', 'mainwp-for-google-security-for-wordpress' ),
 				'show'             => __( 'Show', 'mainwp-for-google-security-for-wordpress' ),
 				'hide'             => __( 'Hide', 'mainwp-for-google-security-for-wordpress' ),
+				'selectZip'        => __( 'Select GSWP plugin ZIP', 'mainwp-for-google-security-for-wordpress' ),
+				'useThisFile'      => __( 'Use this file', 'mainwp-for-google-security-for-wordpress' ),
 			)
 		);
 	}

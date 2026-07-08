@@ -3,7 +3,7 @@
  * Plugin Name: MainWP for Google Security for WordPress
  * Plugin URI: https://onedog.solutions/
  * Description: Configure the Google Security for WordPress plugin on each connected child site directly from the MainWP Dashboard. Since reCAPTCHA keys are issued per domain, configuration lives as a tab on each individual child site rather than a global screen.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: One Dog Solutions
  * Author URI: https://onedog.solutions/
  * Requires at least: 5.8
@@ -34,7 +34,7 @@ if ( ! defined( 'MWPGSWP_PLUGIN_URL' ) ) {
 }
 
 if ( ! defined( 'MWPGSWP_VERSION' ) ) {
-	define( 'MWPGSWP_VERSION', '1.0.0' );
+	define( 'MWPGSWP_VERSION', '1.1.0' );
 }
 
 /**
@@ -160,6 +160,13 @@ class MWPGSWP_Activator {
 			'plugin'     => __FILE__,
 			'api'        => $this->plugin_handle,
 			'mainwp'     => true,
+			// Explicit display name. Without this, MainWP falls back to the
+			// plugin header and then runs polish_string_name() on it, which
+			// strips the literal token 'MainWP' (among others) from the
+			// name — turning "MainWP for Google Security for WordPress"
+			// into "for Google Security for WordPress" on the Add-ons card,
+			// left menu, and page title.
+			'name'       => 'Google Security for WordPress',
 			'callback'   => array( $this, 'render_extensions_page' ),
 			'apiManager' => false,
 		);
