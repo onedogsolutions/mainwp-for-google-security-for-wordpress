@@ -5,15 +5,68 @@ A MainWP Dashboard extension for configuring the Google Security for WordPress
 site only. Companion plugin: `onedogsolutions/google-security-for-wordpress`
 (its own STATE.md tracks the child-side work).
 
-## Current Phase: Phase 5 (First live-test fixes: title, MainWP-native layout, child-site install, v1.1.0)
+## Current Phase: Phase 6 (Second live-test fix: extensions-page header title, v1.1.1)
 
 **Blocked on:** GSWP v2.9.0 shipping the child-side bridge (unchanged from
 Phase 4) — every settings read/write still intentionally resolves to the
-typed `bridge_missing` state until then. The new "Install GSWP" button in
-this phase is not blocked by that, since it uses MainWP's separate, already-
-universal `installplugintheme` child callable rather than the GSWP bridge —
-it can install/upgrade GSWP on a child right now, which is in fact the
-fastest path to getting 2.9.0 onto a site once it ships.
+typed `bridge_missing` state until then.
+
+### Phase 6 Modifications (v1.1.1)
+- Re-tested v1.1.0 on the live staging dashboard. The Add-ons grid card and
+  left-sidebar link now correctly read "Google Security for WordPress" (the
+  Phase 5 fix worked), but the `<h1>`-style title MainWP prints atop this
+  extension's *own* Extensions-page screen still read "For Google Security
+  For Wordpress".
+- **Root cause, found by reading further into MainWP's source rather than
+  guessing from the symptom:** that title is a *different* string than the
+  one the Phase 5 fix corrected. `MainWP_Extensions_View::render_header()`
+  (`class/class-mainwp-extensions-view.php`) builds it from `$_GET['page']`
+  — the current admin page's URL slug — via
+  `polish_string_name( str_replace( '-', ' ', $_GET['page'] ) )`. It never
+  looks at the extension's registered `'name'` at all. And that slug isn't
+  ours to set either: `MainWP_Extensions::init_menu()`
+  (`pages/page-mainwp-extensions.php`) unconditionally *overwrites*
+  `$extension['page']` with `'Extensions-' . ucwords(str_replace('-',' ',
+  dirname(plugin_basename)))` — i.e. this plugin's installed **folder
+  name**, Title-Cased — with no `isset()` guard, so supplying our own
+  `'page'` key would have been silently discarded. For this plugin's folder
+  (`mainwp-for-google-security-for-wordpress`) that naive transform produces
+  "Mainwp For Google Security For Wordpress", and the same
+  `MainWP`-token-stripping pass used for the extension name (`polish_string_
+  name()`) then removes "Mainwp", leaving "For Google Security For
+  Wordpress" — wrong case throughout (`ucwords()` capitalizes every word and
+  has no notion of "WordPress"'s internal capital), and completely
+  independent of the Phase 5 fix.
+- **Fix:** MainWP exposes exactly one escape hatch for this —
+  `apply_filters( 'mainwp_extensions_page_top_header', $title, $raw_page )`
+  — hooked in the main activator's constructor
+  (`fix_extensions_page_title()`). It recomputes the same slug MainWP would
+  (mirroring `init_menu()`'s formula against `plugin_basename( __FILE__ )`,
+  so it self-corrects if the installed folder is ever renamed) and only
+  overrides the title when `$raw_page` matches this extension's own page —
+  every other extension's title passes through unchanged.
+- Version bumped to 1.1.1 (plugin header, `MWPGSWP_VERSION`, `readme.txt`
+  stable tag + changelog). `php -l` clean.
+- **Second symptom from the same test, not changed:** "on initial load of
+  the Add-ons page the left menu registers the add-on, but the card is
+  missing until you click into Add-ons from the sidebar." Traced
+  `MainWP_Extensions_Handler::get_extensions()` and `init_menu()`: the
+  extensions list is force-refreshed from a *fresh* `apply_filters(
+  'mainwp_getextensions', ... )` call at the end of *every* `init_menu()`
+  run, and `init_menu()` itself runs on the `admin_menu` hook — i.e. on
+  every single admin page load, not just the Extensions page. No
+  code path (ours or MainWP's) was found that would cache a stale
+  extensions list across a full page navigation the way the reported
+  symptom implies; the only extension-list caching in MainWP core
+  (`mainwp_extensions_all_activation_cached`) gates the paid API-manager
+  activation check, which this extension opts out of (`'apiManager' =>
+  false`). Left unfixed pending reproduction detail: is it consistently
+  reproducible on a fresh login / hard refresh, or did it only happen once
+  around first activating the plugin? Is a page-cache plugin or CDN in
+  front of the dashboard site? Without a code-level cause to point at, a
+  speculative change here would be guessing.
+
+## Historical Phase: Phase 5 (First live-test fixes: title, MainWP-native layout, child-site install, v1.1.0)
 
 ### Phase 5 Modifications (v1.1.0)
 - First real click-through on a live MainWP Dashboard (MainWP 6.1.2, dark

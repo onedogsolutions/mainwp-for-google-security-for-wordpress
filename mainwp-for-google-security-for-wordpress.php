@@ -3,7 +3,7 @@
  * Plugin Name: MainWP for Google Security for WordPress
  * Plugin URI: https://onedog.solutions/
  * Description: Configure the Google Security for WordPress plugin on each connected child site directly from the MainWP Dashboard. Since reCAPTCHA keys are issued per domain, configuration lives as a tab on each individual child site rather than a global screen.
- * Version: 1.1.0
+ * Version: 1.1.1
  * Author: One Dog Solutions
  * Author URI: https://onedog.solutions/
  * Requires at least: 5.8
@@ -34,7 +34,7 @@ if ( ! defined( 'MWPGSWP_PLUGIN_URL' ) ) {
 }
 
 if ( ! defined( 'MWPGSWP_VERSION' ) ) {
-	define( 'MWPGSWP_VERSION', '1.1.0' );
+	define( 'MWPGSWP_VERSION', '1.1.1' );
 }
 
 /**
@@ -115,6 +115,24 @@ class MWPGSWP_Activator {
 		 */
 		add_filter( 'mainwp_getextensions', array( $this, 'get_this_extension' ) );
 
+		/**
+		 * Corrects the <h1>-style title MainWP prints atop our own Extensions
+		 * page. That title (MainWP_Extensions_View::render_header()) is NOT
+		 * built from our registered 'name' — it is reconstructed from the
+		 * page's URL slug (`$_GET['page']`), which MainWP itself
+		 * unconditionally derives from this plugin's folder name
+		 * (`Extensions-` . ucwords(str_replace('-',' ', dirname(plugin
+		 * basename))), then runs through the same 'MainWP'-stripping pass as
+		 * the extension name). For this plugin's folder that naive transform
+		 * produces "For Google Security For Wordpress" — wrong case, wrong
+		 * words dropped — regardless of what 'name' we register, since
+		 * MainWP overwrites its own computed 'page' key unconditionally. The
+		 * 'mainwp_extensions_page_top_header' filter is MainWP's own escape
+		 * hatch for exactly this; recompute the same slug ourselves so the
+		 * match self-corrects if the installed folder name ever changes.
+		 */
+		add_filter( 'mainwp_extensions_page_top_header', array( $this, 'fix_extensions_page_title' ), 10, 2 );
+
 		$this->mainwpMainActivated = apply_filters( 'mainwp_activated_check', false );
 		if ( false !== $this->mainwpMainActivated ) {
 			$this->activate_this_plugin();
@@ -160,18 +178,40 @@ class MWPGSWP_Activator {
 			'plugin'     => __FILE__,
 			'api'        => $this->plugin_handle,
 			'mainwp'     => true,
-			// Explicit display name. Without this, MainWP falls back to the
-			// plugin header and then runs polish_string_name() on it, which
-			// strips the literal token 'MainWP' (among others) from the
-			// name — turning "MainWP for Google Security for WordPress"
-			// into "for Google Security for WordPress" on the Add-ons card,
-			// left menu, and page title.
+			// Explicit display name. 'mainwp' => true means MainWP always
+			// runs polish_string_name() on this value regardless of what we
+			// supply (it only falls back to the plugin header when no name
+			// is given at all) — that pass strips tokens like 'MainWP', but
+			// our chosen name contains none of them, so it survives
+			// unchanged. Fixes the Add-ons grid card and the breadcrumb
+			// link text. Does NOT fix the page's own <h1> title — that is a
+			// separate, slug-derived string; see fix_extensions_page_title().
 			'name'       => 'Google Security for WordPress',
 			'callback'   => array( $this, 'render_extensions_page' ),
 			'apiManager' => false,
 		);
 
 		return $extensions;
+	}
+
+	/**
+	 * Filter callback for 'mainwp_extensions_page_top_header': replaces
+	 * MainWP's naively slug-derived title with our real display name when
+	 * the current page is ours.
+	 *
+	 * @param string $title    MainWP's computed title (already space-joined
+	 *                         and run through polish_string_name()).
+	 * @param string $raw_page The raw `$_GET['page']` slug this was derived from.
+	 * @return string
+	 */
+	public function fix_extensions_page_title( $title, $raw_page ) {
+		$our_page = 'Extensions-' . str_replace( ' ', '-', ucwords( str_replace( '-', ' ', dirname( plugin_basename( __FILE__ ) ) ) ) );
+
+		if ( $raw_page === $our_page ) {
+			return __( 'Google Security for WordPress', 'mainwp-for-google-security-for-wordpress' );
+		}
+
+		return $title;
 	}
 
 	/**
