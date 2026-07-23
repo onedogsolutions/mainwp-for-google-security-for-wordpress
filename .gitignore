@@ -32,6 +32,9 @@ wp-config.php
 # Log files
 *.log
 
+# Distribution ZIPs (build artifacts, not committed)
+*.zip
+
 # htaccess
 /.htaccess
 
