@@ -161,6 +161,12 @@ class MWPGSWP_Individual {
 							</div>
 						<?php endif; ?>
 
+						<?php if ( 'enterprise' === $tab_id && isset( $settings['pd_supported'] ) && ! $settings['pd_supported'] ) : ?>
+							<div class="ui warning message">
+								<?php esc_html_e( 'Password Defense requires the GMP or BCMath PHP extension and a 64-bit PHP build on the child site. This child does not meet those requirements — the Password Defense toggles below will be inert.', 'mainwp-for-google-security-for-wordpress' ); ?>
+							</div>
+						<?php endif; ?>
+
 						<?php
 						foreach ( $tab['fields'] as $key => $field ) :
 							if ( ! empty( $field['requires_woocommerce'] ) && ! $woocommerce_active ) {

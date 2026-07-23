@@ -4,7 +4,7 @@ Tags: mainwp, recaptcha, security, extension, addon
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.1.2
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,9 +19,9 @@ Because reCAPTCHA site/secret keys are issued **per domain**, this extension doe
 = What you can configure =
 * **API Credentials** — site/secret key, key type (Classic or Enterprise), and GCP project ID / API key for Enterprise.
 * **Form Protection** — enable reCAPTCHA scoring on the WordPress login, registration, and lost-password screens, plus (when WooCommerce is active) the WooCommerce login, registration, and checkout forms, with independent score thresholds for each.
-* **Enterprise Defense** — Transaction Defense (checkout fraud-risk scoring and blocking) and Account Defender (login/account-takeover signals), both Enterprise-only.
-* **Two-Factor Auth** — master switch, role-based enforcement (built from the child site's own role list), enrolment grace period, "remember this browser," and application-password hardening with its exemption list.
-* **Alerts & Compatibility** — admin email alerts on suspicious logins or blocked checkouts, reCAPTCHA conflict handling, and verbose logging.
+* **Enterprise Defense** — Transaction Defense (checkout fraud-risk scoring and blocking), Account Defender (login/account-takeover signals, suspicious sign-up blocking, email sharing), and Password Defense (leaked-credential detection), all Enterprise-only.
+* **Two-Factor Auth** — master switch, role-based enforcement (built from the child site's own role list), enrolment grace period, "remember this browser," site-clone protection, and application-password hardening with its exemption list.
+* **Alerts & Compatibility** — admin email alerts on suspicious logins, suspicious sign-ups, blocked checkouts, or leaked credentials, reCAPTCHA conflict handling, and verbose logging.
 
 = Requirements on the child site =
 
@@ -57,6 +57,13 @@ No. This extension reads and writes settings through MainWP's own signed dashboa
 From a ZIP URL you set once, on the Extensions page. GSWP isn't on wordpress.org, so the child site can't fetch it on its own — point this setting at a ZIP uploaded to your Dashboard's media library, or one hosted on your own update server. The URL must be reachable from the child site, not just from your Dashboard.
 
 == Changelog ==
+
+= 1.2.0 =
+* Added: settings for Password Defense — master toggle, check-on-login, block-leaked-password-at-reset, and refuse-login-with-leaked-password (GSWP 2.13.0). A warning notice is shown when the child site lacks the required GMP/BCMath PHP extension.
+* Added: Account Defender settings for blocking suspicious sign-ups and sharing email identifiers with Google (GSWP 2.12.0).
+* Added: Two-Factor Auth site-clone protection toggle — disables 2FA secrets enrolled on a different site (GSWP 2.10.0).
+* Added: two new alert sub-toggles — suspicious sign-up and leaked credentials (GSWP 2.12.0/2.13.0).
+* Settings schema is now fully in sync with Google Security for WordPress 2.15.0.
 
 = 1.1.2 =
 * The API Credentials tab now hides the classic Secret Key field when Key Type is set to reCAPTCHA Enterprise — Enterprise verifies through the GCP Project ID / API Key pair instead, so the Secret Key field was unused there.

@@ -200,6 +200,43 @@ class MWPGSWP_Settings_Schema {
 						'default'  => '1',
 						'requires' => array( 'account_defender' => '1' ),
 					),
+					'ad_block_signup'  => array(
+						'type'     => 'toggle',
+						'label'    => __( 'Block Suspicious Sign-ups', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '0',
+						'requires' => array( 'account_defender' => '1' ),
+					),
+					'ad_share_email'   => array(
+						'type'        => 'toggle',
+						'label'       => __( 'Send Email Identifiers to Google', 'mainwp-for-google-security-for-wordpress' ),
+						'description' => __( 'Shares the account\'s real email address with Google assessments for markedly better takeover and fake-signup detection. When off, only an anonymous salted hash is sent.', 'mainwp-for-google-security-for-wordpress' ),
+						'default'     => '0',
+						'requires'    => array( 'account_defender' => '1' ),
+					),
+					'password_defense' => array(
+						'type'        => 'toggle',
+						'label'       => __( 'Password Defense', 'mainwp-for-google-security-for-wordpress' ),
+						'description' => __( 'Checks submitted credentials against Google\'s database of billions of breached passwords using a privacy-preserving protocol. Requires the GMP or BCMath PHP extension on the child site.', 'mainwp-for-google-security-for-wordpress' ),
+						'default'     => '0',
+					),
+					'pd_login'         => array(
+						'type'     => 'toggle',
+						'label'    => __( 'Check Credentials on Login', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '1',
+						'requires' => array( 'password_defense' => '1' ),
+					),
+					'pd_block_choice'  => array(
+						'type'     => 'toggle',
+						'label'    => __( 'Block Leaked Password at Reset/Profile', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '1',
+						'requires' => array( 'password_defense' => '1' ),
+					),
+					'pd_force_reset'   => array(
+						'type'     => 'toggle',
+						'label'    => __( 'Refuse Login With Leaked Password', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '0',
+						'requires' => array( 'password_defense' => '1' ),
+					),
 				),
 			),
 			'twofactor'   => array(
@@ -229,6 +266,13 @@ class MWPGSWP_Settings_Schema {
 						'label'    => __( 'Allow "Remember This Browser"', 'mainwp-for-google-security-for-wordpress' ),
 						'default'  => '1',
 						'requires' => array( 'tfa_enabled' => '1' ),
+					),
+					'tfa_env_binding'                => array(
+						'type'        => 'toggle',
+						'label'       => __( 'Disable 2FA on Cloned or Moved Sites', 'mainwp-for-google-security-for-wordpress' ),
+						'description' => __( 'When on, an authenticator secret enrolled on a different site (e.g. a staging clone carrying the production database) stops working — the user signs in with their password and is prompted to re-enroll, giving each site its own secret.', 'mainwp-for-google-security-for-wordpress' ),
+						'default'     => '1',
+						'requires'    => array( 'tfa_enabled' => '1' ),
 					),
 					'tfa_block_app_passwords'        => array(
 						'type'        => 'toggle',
@@ -282,6 +326,18 @@ class MWPGSWP_Settings_Schema {
 						'default'              => '1',
 						'requires'             => array( 'alerts' => '1' ),
 						'requires_woocommerce' => true,
+					),
+					'alert_registration' => array(
+						'type'     => 'toggle',
+						'label'    => __( 'Alert on Suspicious Sign-up', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '1',
+						'requires' => array( 'alerts' => '1' ),
+					),
+					'alert_leak'       => array(
+						'type'     => 'toggle',
+						'label'    => __( 'Alert on Leaked Credentials', 'mainwp-for-google-security-for-wordpress' ),
+						'default'  => '1',
+						'requires' => array( 'alerts' => '1' ),
 					),
 					'conflict_mode'   => array(
 						'type'    => 'select',

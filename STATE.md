@@ -5,7 +5,46 @@ A MainWP Dashboard extension for configuring the Google Security for WordPress
 site only. Companion plugin: `onedogsolutions/google-security-for-wordpress`
 (its own STATE.md tracks the child-side work).
 
-## Current Phase: Phase 8 (Drag-and-drop package upload replaces wp.media dialog)
+## Current Phase: Phase 9 (Settings schema synced to GSWP 2.15.0)
+
+Added the 9 new settings and 1 read-only capability flag introduced in GSWP
+v2.10.0–v2.13.0. The child-side bridge already validates all of these (single-
+source REST validation in `class-gswp-rest-api.php`), so the dashboard only
+needed matching schema entries to render and submit them. No new JS, CSS, or
+AJAX endpoints — the schema-driven architecture handles render, conditional
+visibility, and save generically.
+
+### Phase 9 Modifications (v1.2.0)
+- **9 new schema entries** in `class-mwpgswp-settings-schema.php`:
+  - Enterprise Defense tab: `ad_block_signup` (Block Suspicious Sign-ups),
+    `ad_share_email` (Send Email Identifiers to Google), `password_defense`
+    (master toggle), `pd_login` (Check Credentials on Login), `pd_block_choice`
+    (Block Leaked Password at Reset/Profile), `pd_force_reset` (Refuse Login
+    With Leaked Password). The Password Defense sub-toggles use
+    `'requires' => array( 'password_defense' => '1' )` for conditional
+    visibility; the Account Defender sub-toggles use the existing
+    `'requires' => array( 'account_defender' => '1' )` pattern.
+  - Two-Factor Auth tab: `tfa_env_binding` (Disable 2FA on Cloned or Moved
+    Sites, default on), placed after `tfa_remember`.
+  - Alerts & Compatibility tab: `alert_registration` (Alert on Suspicious
+    Sign-up) and `alert_leak` (Alert on Leaked Credentials), placed after
+    `alert_checkout`.
+- **`pd_supported` capability notice** in `class-mwpgswp-individual.php`:
+  when the child's `get_settings` response includes `pd_supported => false`
+  (no GMP/BCMath or 32-bit PHP), a Fomantic `ui warning message` is printed
+  inside the Enterprise Defense tab explaining the toggles will be inert.
+  Display-only — the toggles still render and save (the child ignores them
+  gracefully), matching GSWP's own behavior. The `pd_supported` key is not in
+  the schema, so it is naturally excluded from the save payload.
+- **No render/JS/save-path changes needed** — the existing generic loops
+  (`render_field()`, conditional-visibility JS via `data-requires-field`/
+  `-value`, `ajax_save()` toggle coercion) handle all 9 new fields without
+  modification.
+- Version bumped to 1.2.0 (plugin header, `MWPGSWP_VERSION`, `readme.txt`
+  stable tag + changelog + updated feature bullets). `php -l` clean on all
+  touched PHP; `node --check` clean on the JS (unchanged).
+
+## Historical Phase: Phase 8 (Drag-and-drop package upload replaces wp.media dialog)
 
 Replaced the WordPress media-library dialog (`wp.media`) for uploading the
 GSWP plugin ZIP with a self-contained drag-and-drop upload zone, modeled on
