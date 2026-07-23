@@ -4,7 +4,7 @@ Tags: mainwp, recaptcha, security, extension, addon
 Requires at least: 5.8
 Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.2.0
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -57,6 +57,10 @@ No. This extension reads and writes settings through MainWP's own signed dashboa
 From a ZIP URL you set once, on the Extensions page. GSWP isn't on wordpress.org, so the child site can't fetch it on its own — point this setting at a ZIP uploaded to your Dashboard's media library, or one hosted on your own update server. The URL must be reachable from the child site, not just from your Dashboard.
 
 == Changelog ==
+
+= 1.3.0 =
+* Added: bulk install — select multiple child sites via checkboxes (with a select-all toggle) and install GSWP on all of them sequentially from the Extensions page, with per-row progress and a success/failure summary.
+* Fixed: checkboxes on the overview table now use native inputs instead of Fomantic UI's JS-dependent styled wrapper, so they render and function correctly without jQuery initialization.
 
 = 1.2.0 =
 * Added: settings for Password Defense — master toggle, check-on-login, block-leaked-password-at-reset, and refuse-login-with-leaked-password (GSWP 2.13.0). A warning notice is shown when the child site lacks the required GMP/BCMath PHP extension.

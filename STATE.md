@@ -5,7 +5,40 @@ A MainWP Dashboard extension for configuring the Google Security for WordPress
 site only. Companion plugin: `onedogsolutions/google-security-for-wordpress`
 (its own STATE.md tracks the child-side work).
 
-## Current Phase: Phase 9 (Settings schema synced to GSWP 2.15.0)
+## Current Phase: Phase 10 (Bulk install GSWP on selected child sites)
+
+Added a WP Vivid-style bulk install feature to the Extensions-page overview:
+per-row checkboxes with a select-all toggle and a "Install GSWP on Selected"
+button that installs the plugin on all checked sites sequentially, reusing the
+existing single-site `mwpgswp_install_gswp` AJAX endpoint. Each row shows
+real-time progress (Installing… / Installed. / error) and a final summary
+reports success/failure counts.
+
+### Phase 10 Modifications (v1.3.0)
+- **Checkbox column** added to the overview site table: a select-all checkbox
+  in the `<thead>` and a per-site checkbox in each row. Uses plain native
+  `<input type="checkbox">` elements (class `mwpgswp-checkbox`) rather than
+  Fomantic UI's `ui fitted checkbox` wrapper, which requires jQuery/
+  `$.fn.checkbox()` initialization this plain-JS project does not load —
+  the Fomantic wrapper hid the native input via CSS and never proxied clicks,
+  rendering the checkboxes invisible and non-functional.
+- **Bulk-action bar** above the table: selected-count label, "Install GSWP on
+  Selected" green button (disabled until ≥ 1 site is checked), and a status
+  span for progress/summary text.
+- **`initBulkInstall()` in `mwpgswp-admin.js`**: select-all toggle with
+  indeterminate state, live selected-count, sequential AJAX loop over the
+  existing `mwpgswp_install_gswp` action (one request per site, avoiding PHP
+  timeout on large site counts), per-row status-cell updates, controls
+  disabled during the run, and a "Bulk install complete: N succeeded, M
+  failed" summary on finish.
+- **5 new localized strings** in `MWPGSWP_Admin::enqueue_assets()`:
+  `bulkConfirm`, `bulkInstalling`, `bulkDone`, `bulkNone`, `bulkSelected`.
+- **CSS**: `.mwpgswp-bulk-bar` flex layout + `.mwpgswp-checkbox` sizing
+  (16px, pointer cursor, vertical-align middle).
+- Version bumped to 1.3.0 (plugin header, `MWPGSWP_VERSION`, `readme.txt`
+  stable tag + changelog).
+
+## Historical Phase: Phase 9 (Settings schema synced to GSWP 2.15.0)
 
 Added the 9 new settings and 1 read-only capability flag introduced in GSWP
 v2.10.0–v2.13.0. The child-side bridge already validates all of these (single-

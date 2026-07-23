@@ -138,10 +138,7 @@ class MWPGSWP_Overview {
 					<thead>
 						<tr>
 							<th class="collapsing">
-								<div class="ui fitted checkbox">
-									<input type="checkbox" id="mwpgswp-select-all" aria-label="<?php esc_attr_e( 'Select all sites', 'mainwp-for-google-security-for-wordpress' ); ?>" />
-									<label></label>
-								</div>
+								<input type="checkbox" id="mwpgswp-select-all" class="mwpgswp-checkbox" aria-label="<?php esc_attr_e( 'Select all sites', 'mainwp-for-google-security-for-wordpress' ); ?>" />
 							</th>
 							<th><?php esc_html_e( 'Site', 'mainwp-for-google-security-for-wordpress' ); ?></th>
 							<th><?php esc_html_e( 'Status', 'mainwp-for-google-security-for-wordpress' ); ?></th>
@@ -165,10 +162,7 @@ class MWPGSWP_Overview {
 							?>
 							<tr data-site-id="<?php echo esc_attr( $site_id ); ?>">
 								<td class="collapsing">
-									<div class="ui fitted checkbox">
-										<input type="checkbox" class="mwpgswp-site-checkbox" value="<?php echo esc_attr( $site_id ); ?>" aria-label="<?php esc_attr_e( 'Select site', 'mainwp-for-google-security-for-wordpress' ); ?>" />
-										<label></label>
-									</div>
+									<input type="checkbox" class="mwpgswp-site-checkbox mwpgswp-checkbox" value="<?php echo esc_attr( $site_id ); ?>" aria-label="<?php esc_attr_e( 'Select site', 'mainwp-for-google-security-for-wordpress' ); ?>" />
 								</td>
 								<td>
 									<strong><?php echo esc_html( isset( $site['name'] ) ? $site['name'] : '' ); ?></strong><br />
