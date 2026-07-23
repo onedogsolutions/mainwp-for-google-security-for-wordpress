@@ -467,6 +467,141 @@
 		} );
 	}
 
+	/**
+	 * Overview page: bulk install via checkboxes + "Install GSWP on Selected".
+	 */
+	function initBulkInstall() {
+		var selectAll  = document.getElementById( 'mwpgswp-select-all' );
+		var bulkBtn    = document.getElementById( 'mwpgswp-bulk-install-btn' );
+		var bulkCount  = document.getElementById( 'mwpgswp-bulk-count' );
+		var bulkStatus = document.getElementById( 'mwpgswp-bulk-status' );
+
+		if ( ! selectAll || ! bulkBtn ) {
+			return;
+		}
+
+		var checkboxes = Array.prototype.slice.call(
+			document.querySelectorAll( '.mwpgswp-site-checkbox' )
+		);
+
+		function getChecked() {
+			return checkboxes.filter( function ( cb ) {
+				return cb.checked;
+			} );
+		}
+
+		function updateState() {
+			var checked = getChecked();
+			var count   = checked.length;
+
+			bulkBtn.disabled = 0 === count;
+			bulkCount.textContent = count > 0
+				? mwpgswpAdmin.bulkSelected.replace( '%d', count )
+				: '';
+
+			// Sync select-all state.
+			selectAll.checked = count === checkboxes.length && count > 0;
+			selectAll.indeterminate = count > 0 && count < checkboxes.length;
+		}
+
+		selectAll.addEventListener( 'change', function () {
+			var isChecked = selectAll.checked;
+			checkboxes.forEach( function ( cb ) {
+				cb.checked = isChecked;
+			} );
+			updateState();
+		} );
+
+		checkboxes.forEach( function ( cb ) {
+			cb.addEventListener( 'change', updateState );
+		} );
+
+		bulkBtn.addEventListener( 'click', function () {
+			var checked = getChecked();
+			if ( 0 === checked.length ) {
+				window.alert( mwpgswpAdmin.bulkNone );
+				return;
+			}
+
+			if ( ! window.confirm( mwpgswpAdmin.bulkConfirm ) ) {
+				return;
+			}
+
+			var total     = checked.length;
+			var succeeded = 0;
+			var failed    = 0;
+			var index     = 0;
+
+			bulkBtn.disabled = true;
+			selectAll.disabled = true;
+			checkboxes.forEach( function ( cb ) {
+				cb.disabled = true;
+			} );
+
+			function installNext() {
+				if ( index >= total ) {
+					bulkStatus.textContent = mwpgswpAdmin.bulkDone
+						.replace( '%1$d', succeeded )
+						.replace( '%2$d', failed );
+					bulkBtn.disabled = false;
+					selectAll.disabled = false;
+					checkboxes.forEach( function ( cb ) {
+						cb.disabled = false;
+					} );
+					updateState();
+					return;
+				}
+
+				var cb     = checked[ index ];
+				var siteId = cb.value;
+				var row    = cb.closest( 'tr' );
+				var cell   = row ? row.querySelector( '.mwpgswp-status-cell' ) : null;
+
+				index++;
+				bulkStatus.textContent = mwpgswpAdmin.bulkInstalling
+					.replace( '%1$d', index )
+					.replace( '%2$d', total );
+
+				if ( cell ) {
+					cell.textContent = mwpgswpAdmin.installing;
+				}
+
+				postAjax( new URLSearchParams( {
+					action: 'mwpgswp_install_gswp',
+					nonce: mwpgswpAdmin.installNonce,
+					site_id: siteId,
+				} ).toString() )
+					.then( function ( response ) {
+						if ( response && response.success ) {
+							succeeded++;
+							if ( cell ) {
+								cell.textContent = mwpgswpAdmin.installed;
+							}
+						} else {
+							failed++;
+							if ( cell ) {
+								cell.textContent = ( response && response.data && response.data.message ) || mwpgswpAdmin.saveError;
+							}
+						}
+					} )
+					.catch( function () {
+						failed++;
+						if ( cell ) {
+							cell.textContent = mwpgswpAdmin.saveError;
+						}
+					} )
+					.then( function () {
+						installNext();
+					} );
+			}
+
+			installNext();
+		} );
+
+		// Initial state.
+		updateState();
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
 		var form = document.getElementById( 'mwpgswp-settings-form' );
 
@@ -485,5 +620,6 @@
 		initOverviewChecks();
 		initInstallButtons();
 		initPackageForm();
+		initBulkInstall();
 	} );
 } )();

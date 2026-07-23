@@ -53,6 +53,15 @@
 	opacity: 0.7;
 }
 
+/* ─── Bulk install bar ─────────────────────────────────────────────────── */
+
+.mwpgswp-bulk-bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 12px;
+}
+
 .mwpgswp-bridge-missing {
 	margin-top: 10px;
 }

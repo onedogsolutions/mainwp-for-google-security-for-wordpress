@@ -109,6 +109,11 @@ class MWPGSWP_Admin {
 				'uploadError'      => __( 'Upload failed.', 'mainwp-for-google-security-for-wordpress' ),
 				'invalidType'      => __( 'Only ZIP files are accepted.', 'mainwp-for-google-security-for-wordpress' ),
 				'invalidSize'      => __( 'File exceeds the maximum size of 10 MB.', 'mainwp-for-google-security-for-wordpress' ),
+				'bulkConfirm'      => __( 'Install (or reinstall/upgrade) Google Security for WordPress on the selected sites now?', 'mainwp-for-google-security-for-wordpress' ),
+				'bulkInstalling'   => __( 'Installing %1$d of %2$d…', 'mainwp-for-google-security-for-wordpress' ),
+				'bulkDone'         => __( 'Bulk install complete: %1$d succeeded, %2$d failed.', 'mainwp-for-google-security-for-wordpress' ),
+				'bulkNone'         => __( 'No sites selected.', 'mainwp-for-google-security-for-wordpress' ),
+				'bulkSelected'     => __( '%d selected', 'mainwp-for-google-security-for-wordpress' ),
 			)
 		);
 	}

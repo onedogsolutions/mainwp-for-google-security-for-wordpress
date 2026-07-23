@@ -127,9 +127,22 @@ class MWPGSWP_Overview {
 			<?php if ( empty( $sites ) ) : ?>
 				<div class="ui message"><?php esc_html_e( 'No connected child sites were found.', 'mainwp-for-google-security-for-wordpress' ); ?></div>
 			<?php else : ?>
+				<div class="mwpgswp-bulk-bar" id="mwpgswp-bulk-bar">
+					<span id="mwpgswp-bulk-count"></span>
+					<button type="button" class="ui green button" id="mwpgswp-bulk-install-btn" disabled>
+						<?php esc_html_e( 'Install GSWP on Selected', 'mainwp-for-google-security-for-wordpress' ); ?>
+					</button>
+					<span id="mwpgswp-bulk-status" class="mwpgswp-save-status"></span>
+				</div>
 				<table class="ui unstackable table mwpgswp-overview-table">
 					<thead>
 						<tr>
+							<th class="collapsing">
+								<div class="ui fitted checkbox">
+									<input type="checkbox" id="mwpgswp-select-all" aria-label="<?php esc_attr_e( 'Select all sites', 'mainwp-for-google-security-for-wordpress' ); ?>" />
+									<label></label>
+								</div>
+							</th>
 							<th><?php esc_html_e( 'Site', 'mainwp-for-google-security-for-wordpress' ); ?></th>
 							<th><?php esc_html_e( 'Status', 'mainwp-for-google-security-for-wordpress' ); ?></th>
 							<th><?php esc_html_e( 'Actions', 'mainwp-for-google-security-for-wordpress' ); ?></th>
@@ -151,6 +164,12 @@ class MWPGSWP_Overview {
 							);
 							?>
 							<tr data-site-id="<?php echo esc_attr( $site_id ); ?>">
+								<td class="collapsing">
+									<div class="ui fitted checkbox">
+										<input type="checkbox" class="mwpgswp-site-checkbox" value="<?php echo esc_attr( $site_id ); ?>" aria-label="<?php esc_attr_e( 'Select site', 'mainwp-for-google-security-for-wordpress' ); ?>" />
+										<label></label>
+									</div>
+								</td>
 								<td>
 									<strong><?php echo esc_html( isset( $site['name'] ) ? $site['name'] : '' ); ?></strong><br />
 									<span class="mwpgswp-site-url"><?php echo esc_html( isset( $site['url'] ) ? $site['url'] : '' ); ?></span>
