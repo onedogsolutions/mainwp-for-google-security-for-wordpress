@@ -55,6 +55,7 @@ class MWPGSWP_Admin {
 		add_action( 'wp_ajax_mwpgswp_save_settings', array( MWPGSWP_Individual::get_instance(), 'ajax_save' ) );
 		add_action( 'wp_ajax_mwpgswp_check_site', array( MWPGSWP_Overview::get_instance(), 'ajax_check' ) );
 		add_action( 'wp_ajax_mwpgswp_save_package', array( MWPGSWP_Overview::get_instance(), 'ajax_save_package' ) );
+		add_action( 'wp_ajax_mwpgswp_upload_package', array( MWPGSWP_Overview::get_instance(), 'ajax_upload_package' ) );
 		add_action( 'wp_ajax_mwpgswp_install_gswp', array( MWPGSWP_Overview::get_instance(), 'ajax_install' ) );
 	}
 
@@ -92,6 +93,7 @@ class MWPGSWP_Admin {
 				'saveNonce'        => wp_create_nonce( 'mwpgswp_save_settings' ),
 				'checkNonce'       => wp_create_nonce( 'mwpgswp_check_site' ),
 				'packageNonce'     => wp_create_nonce( 'mwpgswp_save_package' ),
+				'uploadNonce'      => wp_create_nonce( 'mwpgswp_upload_package' ),
 				'installNonce'     => wp_create_nonce( 'mwpgswp_install_gswp' ),
 				'confirmUnsaved'   => __( 'You have unsaved changes. Leave this page anyway?', 'mainwp-for-google-security-for-wordpress' ),
 				'confirmInstall'   => __( 'Install (or reinstall/upgrade) Google Security for WordPress on this site now?', 'mainwp-for-google-security-for-wordpress' ),
@@ -103,8 +105,10 @@ class MWPGSWP_Admin {
 				'installed'        => __( 'Installed.', 'mainwp-for-google-security-for-wordpress' ),
 				'show'             => __( 'Show', 'mainwp-for-google-security-for-wordpress' ),
 				'hide'             => __( 'Hide', 'mainwp-for-google-security-for-wordpress' ),
-				'selectZip'        => __( 'Select GSWP plugin ZIP', 'mainwp-for-google-security-for-wordpress' ),
-				'useThisFile'      => __( 'Use this file', 'mainwp-for-google-security-for-wordpress' ),
+				'uploading'        => __( 'Uploading…', 'mainwp-for-google-security-for-wordpress' ),
+				'uploadError'      => __( 'Upload failed.', 'mainwp-for-google-security-for-wordpress' ),
+				'invalidType'      => __( 'Only ZIP files are accepted.', 'mainwp-for-google-security-for-wordpress' ),
+				'invalidSize'      => __( 'File exceeds the maximum size of 10 MB.', 'mainwp-for-google-security-for-wordpress' ),
 			)
 		);
 	}

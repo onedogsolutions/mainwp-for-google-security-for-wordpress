@@ -286,8 +286,8 @@
 	}
 
 	/**
-	 * Overview page: the GSWP package (ZIP URL) setting, with an optional
-	 * media-library upload that fills the URL field.
+	 * Overview page: the GSWP package (ZIP URL) setting, with a drag-and-drop
+	 * upload zone that uploads the file and fills the URL field.
 	 */
 	function initPackageForm() {
 		var form = document.getElementById( 'mwpgswp-package-form' );
@@ -295,30 +295,161 @@
 			return;
 		}
 
-		var status = document.getElementById( 'mwpgswp-package-status' );
-		var urlInput = document.getElementById( 'mwpgswp-package-url' );
-		var uploadBtn = document.getElementById( 'mwpgswp-package-upload' );
+		var status     = document.getElementById( 'mwpgswp-package-status' );
+		var urlInput   = document.getElementById( 'mwpgswp-package-url' );
+		var dropzone   = document.getElementById( 'mwpgswp-dropzone' );
+		var fileInput  = document.getElementById( 'mwpgswp-file-input' );
+		var selectBtn  = document.getElementById( 'mwpgswp-select-file-btn' );
+		var prompt     = document.getElementById( 'mwpgswp-dropzone-prompt' );
+		var preview    = document.getElementById( 'mwpgswp-dropzone-preview' );
+		var filenameEl = document.getElementById( 'mwpgswp-dropzone-filename' );
+		var removeBtn  = document.getElementById( 'mwpgswp-dropzone-remove' );
+		var errorEl    = document.getElementById( 'mwpgswp-dropzone-error' );
 
-		if ( uploadBtn && window.wp && window.wp.media ) {
-			uploadBtn.addEventListener( 'click', function ( e ) {
+		var MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+		var isDragging = false;
+
+		function showError( msg ) {
+			errorEl.textContent = msg;
+			errorEl.hidden = false;
+		}
+
+		function clearError() {
+			errorEl.textContent = '';
+			errorEl.hidden = true;
+		}
+
+		function showPreview( name ) {
+			filenameEl.textContent = name;
+			prompt.hidden = true;
+			preview.hidden = false;
+		}
+
+		function resetDropzone() {
+			preview.hidden = true;
+			prompt.hidden = false;
+			fileInput.value = '';
+			clearError();
+		}
+
+		function validateFile( file ) {
+			var ext = file.name.split( '.' ).pop().toLowerCase();
+			if ( 'zip' !== ext ) {
+				showError( mwpgswpAdmin.invalidType );
+				return false;
+			}
+			if ( file.size > MAX_SIZE ) {
+				showError( mwpgswpAdmin.invalidSize );
+				return false;
+			}
+			return true;
+		}
+
+		function uploadFile( file ) {
+			if ( ! validateFile( file ) ) {
+				return;
+			}
+
+			clearError();
+			showPreview( file.name );
+			filenameEl.textContent = mwpgswpAdmin.uploading;
+
+			var formData = new FormData();
+			formData.append( 'action', 'mwpgswp_upload_package' );
+			formData.append( 'nonce', mwpgswpAdmin.uploadNonce );
+			formData.append( 'file', file );
+
+			fetch( mwpgswpAdmin.ajaxUrl, {
+				method: 'POST',
+				credentials: 'same-origin',
+				body: formData,
+			} )
+				.then( function ( response ) {
+					return response.json();
+				} )
+				.then( function ( response ) {
+					if ( response && response.success ) {
+						urlInput.value = response.data.url;
+						filenameEl.textContent = response.data.filename || file.name;
+					} else {
+						var msg = ( response && response.data && response.data.message ) || mwpgswpAdmin.uploadError;
+						showError( msg );
+						resetDropzone();
+					}
+				} )
+				.catch( function () {
+					showError( mwpgswpAdmin.uploadError );
+					resetDropzone();
+				} );
+		}
+
+		// "Select file" button opens the file dialog.
+		if ( selectBtn ) {
+			selectBtn.addEventListener( 'click', function ( e ) {
 				e.preventDefault();
-
-				var frame = window.wp.media( {
-					title: mwpgswpAdmin.selectZip,
-					library: { type: 'application/zip' },
-					multiple: false,
-					button: { text: mwpgswpAdmin.useThisFile },
-				} );
-
-				frame.on( 'select', function () {
-					var attachment = frame.state().get( 'selection' ).first().toJSON();
-					urlInput.value = attachment.url;
-				} );
-
-				frame.open();
+				fileInput.click();
 			} );
 		}
 
+		// File input change.
+		fileInput.addEventListener( 'change', function () {
+			if ( fileInput.files && fileInput.files.length > 0 ) {
+				uploadFile( fileInput.files[ 0 ] );
+			}
+		} );
+
+		// Remove button resets the zone.
+		if ( removeBtn ) {
+			removeBtn.addEventListener( 'click', function () {
+				resetDropzone();
+			} );
+		}
+
+		// Drag-and-drop handlers.
+		dropzone.addEventListener( 'dragenter', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();
+			isDragging = true;
+			dropzone.classList.add( 'mwpgswp-dropzone--dragging' );
+		} );
+
+		dropzone.addEventListener( 'dragover', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();
+		} );
+
+		dropzone.addEventListener( 'dragleave', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();
+			if ( dropzone.contains( e.relatedTarget ) ) {
+				return;
+			}
+			isDragging = false;
+			dropzone.classList.remove( 'mwpgswp-dropzone--dragging' );
+		} );
+
+		dropzone.addEventListener( 'drop', function ( e ) {
+			e.preventDefault();
+			e.stopPropagation();
+			isDragging = false;
+			dropzone.classList.remove( 'mwpgswp-dropzone--dragging' );
+
+			if ( e.dataTransfer.files && e.dataTransfer.files.length > 0 ) {
+				uploadFile( e.dataTransfer.files[ 0 ] );
+			}
+		} );
+
+		// Also allow clicking anywhere on the dropzone to open the file dialog.
+		dropzone.addEventListener( 'click', function ( e ) {
+			if ( e.target === selectBtn || selectBtn.contains( e.target ) || e.target === removeBtn || removeBtn.contains( e.target ) ) {
+				return;
+			}
+			if ( preview.hidden ) {
+				fileInput.click();
+			}
+		} );
+
+		// Save package URL form.
 		form.addEventListener( 'submit', function ( e ) {
 			e.preventDefault();
 

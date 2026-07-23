@@ -5,7 +5,46 @@ A MainWP Dashboard extension for configuring the Google Security for WordPress
 site only. Companion plugin: `onedogsolutions/google-security-for-wordpress`
 (its own STATE.md tracks the child-side work).
 
-## Current Phase: Phase 7 (GSWP 2.9.0 bridge confirmed live end-to-end; Secret Key field gating, v1.1.2)
+## Current Phase: Phase 8 (Drag-and-drop package upload replaces wp.media dialog)
+
+Replaced the WordPress media-library dialog (`wp.media`) for uploading the
+GSWP plugin ZIP with a self-contained drag-and-drop upload zone, modeled on
+the shadcn/origin comp-545 pattern (drop area + button + preview + remove)
+but implemented in the project's plain-JS, no-build-step, Fomantic-UI style.
+
+### Phase 8 Modifications
+- **Removed `wp_enqueue_media()`** from `MWPGSWP_Overview::render_page()` —
+  the media-library frame is no longer needed.
+- **New drop-zone markup** in the Extensions-page package form: a dashed-border
+  container with an upload icon, "Drop your ZIP here" prompt, file-type/size
+  hint ("ZIP only, max. 10 MB"), a "Select file" button, a file-preview row
+  (filename + × remove button), and a `role="alert"` error line. The URL
+  input remains below (auto-populated on successful upload, or manually
+  entered for a self-hosted ZIP) with a helper description.
+- **New AJAX endpoint `mwpgswp_upload_package`**
+  (`MWPGSWP_Overview::ajax_upload_package()`): validates the upload (ZIP
+  extension, ≤ 10 MB, `UPLOAD_ERR_OK`), stores the file in
+  `wp-content/uploads/mwpgswp-packages/` with a unique timestamped name,
+  writes `.htaccess` (Deny from all) + `index.php` (silence) guards on first
+  use, and returns the public URL. Gated behind `upload_files` +
+  `install_plugins` capabilities and its own nonce.
+- **Rewrote `initPackageForm()` in `mwpgswp-admin.js`**: client-side
+  validation (extension + size), `FormData`/`fetch()` multipart upload,
+  drag-enter/over/leave/drop handlers with a `--dragging` visual state,
+  click-anywhere-to-browse (when no file is loaded), preview/remove toggle,
+  and inline error display. The existing save-package form-submit handler is
+  unchanged.
+- **New CSS** in `mwpgswp-admin.css`: drop-zone layout (flexbox centering,
+  min-height, dashed border, rounded corners), visually-hidden file input,
+  icon circle, prompt/preview states, remove button, error text. Layout-only,
+  no color values — inherits MainWP's Fomantic theme (light/dark).
+- **Localized strings updated** in `MWPGSWP_Admin::enqueue_assets()`: added
+  `uploadNonce`, `uploading`, `uploadError`, `invalidType`, `invalidSize`;
+  removed the now-unused `selectZip`/`useThisFile`.
+- `php -l` clean on all touched PHP; `node --check` clean on the JS. No new
+  files; same four source files modified in place.
+
+## Historical Phase: Phase 7 (GSWP 2.9.0 bridge confirmed live end-to-end; Secret Key field gating, v1.1.2)
 
 **No longer blocked.** GSWP 2.9.0 has shipped the child-side bridge and it
 was verified working end-to-end on the live staging dashboard: the per-site

@@ -53,7 +53,6 @@ class MWPGSWP_Overview {
 	 */
 	public function render_page() {
 		MWPGSWP_Admin::enqueue_assets();
-		wp_enqueue_media();
 
 		$sites   = $this->get_sites();
 		$package = $this->get_package();
@@ -72,9 +71,41 @@ class MWPGSWP_Overview {
 				<form id="mwpgswp-package-form" class="ui form">
 					<input type="hidden" name="action" value="mwpgswp_save_package" />
 					<?php wp_nonce_field( 'mwpgswp_save_package', 'nonce' ); ?>
+
+					<!-- Drag-and-drop file upload zone -->
+					<div class="field">
+						<label><?php esc_html_e( 'Upload Plugin ZIP', 'mainwp-for-google-security-for-wordpress' ); ?></label>
+						<div class="mwpgswp-dropzone" id="mwpgswp-dropzone">
+							<input
+								type="file"
+								id="mwpgswp-file-input"
+								accept=".zip,application/zip"
+								class="mwpgswp-dropzone-input"
+								aria-label="<?php esc_attr_e( 'Upload ZIP file', 'mainwp-for-google-security-for-wordpress' ); ?>"
+							/>
+							<!-- Empty state: prompt -->
+							<div class="mwpgswp-dropzone-prompt" id="mwpgswp-dropzone-prompt">
+								<span class="mwpgswp-dropzone-icon" aria-hidden="true">
+									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+								</span>
+								<p class="mwpgswp-dropzone-title"><?php esc_html_e( 'Drop your ZIP here', 'mainwp-for-google-security-for-wordpress' ); ?></p>
+								<p class="mwpgswp-dropzone-hint"><?php esc_html_e( 'ZIP only (max. 10 MB)', 'mainwp-for-google-security-for-wordpress' ); ?></p>
+								<button type="button" class="ui button" id="mwpgswp-select-file-btn">
+									<?php esc_html_e( 'Select file', 'mainwp-for-google-security-for-wordpress' ); ?>
+								</button>
+							</div>
+							<!-- Filled state: file preview -->
+							<div class="mwpgswp-dropzone-preview" id="mwpgswp-dropzone-preview" hidden>
+								<span class="mwpgswp-dropzone-filename" id="mwpgswp-dropzone-filename"></span>
+								<button type="button" class="mwpgswp-dropzone-remove" id="mwpgswp-dropzone-remove" aria-label="<?php esc_attr_e( 'Remove file', 'mainwp-for-google-security-for-wordpress' ); ?>" title="<?php esc_attr_e( 'Remove file', 'mainwp-for-google-security-for-wordpress' ); ?>">&times;</button>
+							</div>
+						</div>
+						<div class="mwpgswp-dropzone-error" id="mwpgswp-dropzone-error" role="alert" hidden></div>
+					</div>
+
 					<div class="field">
 						<label for="mwpgswp-package-url"><?php esc_html_e( 'Package ZIP URL', 'mainwp-for-google-security-for-wordpress' ); ?></label>
-						<div class="ui action input">
+						<div class="ui input">
 							<input
 								type="url"
 								id="mwpgswp-package-url"
@@ -82,11 +113,10 @@ class MWPGSWP_Overview {
 								value="<?php echo esc_attr( $package['url'] ); ?>"
 								placeholder="https://example.com/google-security-for-wordpress.zip"
 							/>
-							<button type="button" class="ui button" id="mwpgswp-package-upload">
-								<?php esc_html_e( 'Upload ZIP', 'mainwp-for-google-security-for-wordpress' ); ?>
-							</button>
 						</div>
+						<p class="mwpgswp-field-description"><?php esc_html_e( 'Populated automatically when you upload a file above, or enter a URL to a ZIP hosted on your own update server.', 'mainwp-for-google-security-for-wordpress' ); ?></p>
 					</div>
+
 					<button type="submit" class="ui primary button">
 						<?php esc_html_e( 'Save Package', 'mainwp-for-google-security-for-wordpress' ); ?>
 					</button>
@@ -194,6 +224,78 @@ class MWPGSWP_Overview {
 		update_option( 'mwpgswp_package', array( 'url' => $url ) );
 
 		wp_send_json_success( array( 'url' => $url ) );
+	}
+
+	/**
+	 * AJAX handler: receive a ZIP file upload, store it in the WordPress
+	 * uploads directory, and return its URL. Used by the drag-and-drop zone
+	 * on the Extensions page as a direct alternative to the wp.media dialog.
+	 */
+	public function ajax_upload_package() {
+		check_ajax_referer( 'mwpgswp_upload_package', 'nonce' );
+
+		if ( ! current_user_can( 'upload_files' ) || ! current_user_can( 'install_plugins' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You do not have permission to upload plugin packages.', 'mainwp-for-google-security-for-wordpress' ) ) );
+		}
+
+		if ( empty( $_FILES['file'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'No file was uploaded.', 'mainwp-for-google-security-for-wordpress' ) ) );
+		}
+
+		$file = $_FILES['file']; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- validated below.
+
+		// Validate extension.
+		$filename = sanitize_file_name( $file['name'] );
+		$ext      = strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) );
+		if ( 'zip' !== $ext ) {
+			wp_send_json_error( array( 'message' => __( 'Only ZIP files are accepted.', 'mainwp-for-google-security-for-wordpress' ) ) );
+		}
+
+		// Validate size (10 MB max).
+		$max_size = 10 * 1024 * 1024;
+		if ( (int) $file['size'] > $max_size ) {
+			wp_send_json_error( array( 'message' => __( 'File exceeds the maximum size of 10 MB.', 'mainwp-for-google-security-for-wordpress' ) ) );
+		}
+
+		// Validate upload error.
+		if ( UPLOAD_ERR_OK !== (int) $file['error'] ) {
+			wp_send_json_error( array( 'message' => __( 'Upload failed. Please try again.', 'mainwp-for-google-security-for-wordpress' ) ) );
+		}
+
+		// Store in wp-content/uploads/mwpgswp-packages/.
+		$upload_dir = wp_upload_dir();
+		$target_dir = trailingslashit( $upload_dir['basedir'] ) . 'mwpgswp-packages';
+
+		if ( ! file_exists( $target_dir ) ) {
+			wp_mkdir_p( $target_dir );
+		}
+
+		// Prevent direct PHP execution inside the package directory.
+		$htaccess = $target_dir . '/.htaccess';
+		if ( ! file_exists( $htaccess ) ) {
+			file_put_contents( $htaccess, 'Deny from all' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+		$index = $target_dir . '/index.php';
+		if ( ! file_exists( $index ) ) {
+			file_put_contents( $index, '<?php // Silence is golden.' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+
+		// Unique filename to avoid collisions.
+		$unique_name = 'gswp-' . gmdate( 'Ymd-His' ) . '-' . wp_generate_password( 6, false ) . '.zip';
+		$target_path = $target_dir . '/' . $unique_name;
+
+		if ( ! move_uploaded_file( $file['tmp_name'], $target_path ) ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			wp_send_json_error( array( 'message' => __( 'Could not save the uploaded file.', 'mainwp-for-google-security-for-wordpress' ) ) );
+		}
+
+		$url = trailingslashit( $upload_dir['baseurl'] ) . 'mwpgswp-packages/' . $unique_name;
+
+		wp_send_json_success(
+			array(
+				'url'      => $url,
+				'filename' => $filename,
+			)
+		);
 	}
 
 	/**
